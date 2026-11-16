@@ -168,6 +168,7 @@ public class SaveManager : MonoBehaviour
             statBrokenPerObject = GameStats.BrokenPerObject,
             pieceTutorialDone = PieceTutorial.Instance != null && PieceTutorial.Instance.Done,
             tutorialStep = TutorialGuideUI.Step,
+            tutorialPendingReward = TutorialGuideUI.PendingReward,
             unlockedObjects = unlockedObjects,
             gainLevels = gainLevels,
             weaponIndex = WeaponManager.Instance != null ? WeaponManager.Instance.EquippedIndex : 0,
@@ -193,6 +194,7 @@ public class SaveManager : MonoBehaviour
         if (!File.Exists(SavePath))
         {
             TutorialGuideUI.Step = 0; // 새 게임: 같은 실행에서 전 판 값이 남지 않게
+            TutorialGuideUI.PendingReward = 0;
             ZoneBreaker.FinalBossCleared = false;
             return;
         }
@@ -215,6 +217,7 @@ public class SaveManager : MonoBehaviour
         if (PieceTutorial.Instance != null)
             PieceTutorial.Instance.Done = data.pieceTutorialDone;
         TutorialGuideUI.Step = data.tutorialStep;
+        TutorialGuideUI.PendingReward = data.tutorialPendingReward;
 
         // Equip 전에 해금 상태부터 복원
         if (ObjectManager.Instance != null && data.unlockedObjects != null)

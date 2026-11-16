@@ -56,6 +56,8 @@ public static class GameSettings
     }
     public const int DemoZoneCount = 3;
     public const int DemoObjectCount = 15; // 데모는 회사(14)까지
+    public const int DemoPieceRewardMultiplier = 3; // 데모는 조각 보상 x3 (맵3까지 약 10분)
+    public const float DemoHpMultiplier = 0.5f; // 데모는 오브젝트 체력 x0.5
     public const int DemoWeaponCount = 6; // 데모는 다이너마이트(5)까지 - 나중에 추가하는 무기는 풀버전 전용
     public static bool IsDemoLockedObject(int objectIndex) => IsDemo && objectIndex >= DemoObjectCount;
     public static bool IsDemoLockedWeapon(int weaponIndex) => IsDemo && weaponIndex >= DemoWeaponCount;

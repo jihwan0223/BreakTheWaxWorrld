@@ -385,6 +385,7 @@ public partial class SidePanelUI : MonoBehaviour
             DebrisPool.Instance?.ClearAll();
             if (PieceTutorial.Instance != null) PieceTutorial.Instance.Done = false;
             TutorialGuideUI.Step = 0;
+            TutorialGuideUI.PendingReward = 0;
             UpgradeManager.Instance?.ResetAll();
             ObjectManager.Instance?.ResetAll();
             ObjectManager.Instance?.Equip(0);

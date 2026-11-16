@@ -222,7 +222,8 @@ public class ObjectManager : MonoBehaviour
     // 맵2는 책상에서 왁뿌볼까지 6칸에 x2^6 x10을 고르게 나눔 (예전엔 맵3 들어갈 때 x10이 한 번에 뛰었음)
     private static readonly double Map2RewardGrowth = Math.Pow(Math.Pow(2, ObjectsPerMap + 1) * 10, 1.0 / (ObjectsPerMap + 1)); // 약 x2.94
 
-    public long GetBaseReward(int index) => Math.Max(1L, (long)RawBaseReward(index));
+    // 데모는 보상만 배수 (해금 가격은 RawBaseReward 기준이라 그대로)
+    public long GetBaseReward(int index) => Math.Max(1L, (long)RawBaseReward(index)) * (GameSettings.IsDemo ? GameSettings.DemoPieceRewardMultiplier : 1);
 
     private static double RawBaseReward(int index)
     {

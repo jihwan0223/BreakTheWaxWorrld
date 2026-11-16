@@ -53,6 +53,31 @@ public class MainMenuUI : MonoBehaviour
     private System.Action _afterShatter;
     private float _shatterTimer;
 
+    // 배경: 낮 하늘 그림 위로 조각/결정이 천천히 떨어짐
+    [SerializeField] private Sprite[] fallingPieces; // 떨어지는 조각/결정 그림 (Piece_xx, Crystal_xx)
+    private const int FallingCount = 30; // 동시에 떨어지는 조각 수
+    private const float FallMinSpeed = 50f; // px/초
+    private const float FallMaxSpeed = 130f; // px/초
+    private const float FallMinSize = 24f; // px - 조각 높이
+    private const float FallMaxSize = 48f; // px
+    private const float FallOpacity = 0.85f; // 조각 투명도 (메뉴보다 눈에 덜 띄게)
+    private const float SkyInset = 8f; // px - 화면 테두리(도트 한 칸) 안쪽에 하늘을 깖
+
+    private class Falling
+    {
+        public VisualElement element; // 조각 그림
+        public Vector2 pos; // px (하늘 칸 왼쪽 위 기준)
+        public float speed; // px/초
+        public float angle; // 도
+        public float spin; // 도/초
+        public float swayTime; // 좌우 흔들림 진행 (초)
+        public float swayAmp; // px - 좌우 흔들림 폭
+    }
+
+    private readonly List<Falling> _falling = new List<Falling>(); // 떨어지는 조각들
+    private VisualElement _skyLayer; // 하늘 그림 + 떨어지는 조각
+    private bool _fallingPlaced; // 처음 위치(화면 전체에 흩뿌림)를 잡았는지
+
     private enum InputMode { Menu, Confirm, Settings, Starting }
     private InputMode _mode = InputMode.Menu;
 
@@ -74,6 +99,7 @@ public class MainMenuUI : MonoBehaviour
     void Update()
     {
         UpdateShards();
+        UpdateFalling();
         if (_mode == InputMode.Starting)
         {
             _shatterTimer -= Time.unscaledDeltaTime;
@@ -111,6 +137,7 @@ public class MainMenuUI : MonoBehaviour
             root.style.unityFontDefinition = FontDefinition.FromSDFFont(GameFonts.UiColored);
         root.style.flexGrow = 1;
         PixelStyle.ScreenFrame(root, PixelStyle.Window, 8f);
+        BuildSky(root);
 
         var title = new Label("BREAK THE WAX WORLD");
         title.style.position = Position.Absolute;
@@ -325,6 +352,71 @@ public class MainMenuUI : MonoBehaviour
         _shardLayer.Add(element);
         _shards.Add(new Shard { element = element, velocity = velocity, spin = Random.Range(-540f, 540f) });
         return element;
+    }
+
+    private void BuildSky(VisualElement root)
+    {
+        _falling.Clear();
+        _fallingPlaced = false;
+        _skyLayer = new VisualElement();
+        _skyLayer.style.position = Position.Absolute;
+        _skyLayer.style.left = _skyLayer.style.top = _skyLayer.style.right = SkyInset;
+        _skyLayer.style.bottom = SkyInset * 2f; // 아래 테두리는 그림자까지 두 칸
+        _skyLayer.style.overflow = Overflow.Hidden;
+        _skyLayer.pickingMode = PickingMode.Ignore;
+        Texture2D sky = Resources.Load<Texture2D>("LoadingDay"); // 로딩 화면과 같은 도트 하늘 + 언덕
+        if (sky != null)
+        {
+            sky.filterMode = FilterMode.Point;
+            _skyLayer.style.backgroundImage = new StyleBackground(sky);
+            _skyLayer.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Cover);
+        }
+        root.Add(_skyLayer);
+
+        if (fallingPieces == null || fallingPieces.Length == 0) return;
+        for (int i = 0; i < FallingCount; i++)
+        {
+            Sprite sprite = fallingPieces[Random.Range(0, fallingPieces.Length)]; // 이 조각 그림
+            if (sprite == null) continue;
+            float height = Random.Range(FallMinSize, FallMaxSize); // px
+            var element = new VisualElement();
+            element.style.position = Position.Absolute;
+            element.style.height = height;
+            element.style.width = height * sprite.rect.width / sprite.rect.height;
+            element.style.backgroundImage = new StyleBackground(sprite);
+            element.style.opacity = FallOpacity;
+            element.pickingMode = PickingMode.Ignore;
+            _skyLayer.Add(element);
+            _falling.Add(new Falling
+            {
+                element = element,
+                speed = Random.Range(FallMinSpeed, FallMaxSpeed),
+                angle = Random.Range(0f, 360f),
+                spin = Random.Range(-90f, 90f),
+                swayTime = Random.Range(0f, 10f),
+                swayAmp = Random.Range(10f, 30f),
+            });
+        }
+    }
+
+    private void UpdateFalling()
+    {
+        if (_skyLayer == null || _falling.Count == 0) return;
+        float width = _skyLayer.resolvedStyle.width; // px
+        float height = _skyLayer.resolvedStyle.height; // px
+        if (float.IsNaN(width) || width <= 0f) return; // 아직 배치 전
+        float deltaTime = Time.unscaledDeltaTime;
+        foreach (Falling piece in _falling)
+        {
+            if (!_fallingPlaced) piece.pos = new Vector2(Random.Range(0f, width), Random.Range(-60f, height)); // 처음엔 화면 전체에
+            piece.pos.y += piece.speed * deltaTime;
+            piece.angle += piece.spin * deltaTime;
+            piece.swayTime += deltaTime;
+            if (piece.pos.y > height + 20f) piece.pos = new Vector2(Random.Range(0f, width), -60f); // 아래로 나가면 위에서 다시
+            piece.element.style.translate = new Translate(piece.pos.x + Mathf.Sin(piece.swayTime) * piece.swayAmp, piece.pos.y);
+            piece.element.style.rotate = new Rotate(piece.angle);
+        }
+        _fallingPlaced = true;
     }
 
     private void UpdateShards()

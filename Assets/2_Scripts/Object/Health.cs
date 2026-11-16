@@ -22,7 +22,8 @@ public class Health : MonoBehaviour
 
     public static int ComputeMaxHP(int tier, int indexInTier, float multiplier) =>
         Mathf.Max(1, Mathf.RoundToInt(ObjectHealthCalculator.Calculate(tier, indexInTier) * multiplier
-            * MapHpScale[Mathf.Clamp((tier - 1) / 2, 0, MapHpScale.Length - 1)] * GlobalHpScale));
+            * MapHpScale[Mathf.Clamp((tier - 1) / 2, 0, MapHpScale.Length - 1)] * GlobalHpScale
+            * (GameSettings.IsDemo ? GameSettings.DemoHpMultiplier : 1f))); // 데모는 체력 배수
 
     public int MaxHP => maxHP;
     public int CurrentHP { get; private set; }

@@ -149,6 +149,45 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65a777275b3ccfb4f96da9df28b4c3a8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MainMenuUI
+  fallingPieces:
+  - {fileID: 21300000, guid: b1d096dbbb384d7497d36d7da363d5f6, type: 3}
+  - {fileID: 21300000, guid: 54ba00d678234d42b2bfd6b298c0982f, type: 3}
+  - {fileID: 21300000, guid: 5d0675f7e1324689bf2d98a3ae89cf8f, type: 3}
+  - {fileID: 21300000, guid: 5d682ce020f44a8990f968b17a5f9ad5, type: 3}
+  - {fileID: 21300000, guid: 7bedefd42191420b86772cfb6e2488dc, type: 3}
+  - {fileID: 21300000, guid: 0e917f5c91b6467c92c5c41ee91fb9bf, type: 3}
+  - {fileID: 21300000, guid: 90dea386fb1442aeba354d7fa9982453, type: 3}
+  - {fileID: 21300000, guid: 3f65f2b4024b4694a4b76ee7dff8e59f, type: 3}
+  - {fileID: 21300000, guid: 7a499f9559734f7d82f03797be851e1f, type: 3}
+  - {fileID: 21300000, guid: dbe1c5bd8e974584ae71747face34e42, type: 3}
+  - {fileID: 21300000, guid: 3d7c1f677c1a41e2bc16a9427ea6559a, type: 3}
+  - {fileID: 21300000, guid: 5bfb3c586ef24677858c259cfb081c71, type: 3}
+  - {fileID: 21300000, guid: 168e0f4ddc3e46e8a20680ba6b7d6c06, type: 3}
+  - {fileID: 21300000, guid: 8d04f562aee74e17968a072a5fd54b8b, type: 3}
+  - {fileID: 21300000, guid: c7b502f3ff70480eac36a554122c03ca, type: 3}
+  - {fileID: 21300000, guid: 30396a3bf7374ab296ba36e6bb6494f9, type: 3}
+  - {fileID: 21300000, guid: 8da29cb4d82e4f1580c52043cd636f66, type: 3}
+  - {fileID: 21300000, guid: c9243749606c4918aeedf702bf3bd909, type: 3}
+  - {fileID: 21300000, guid: d6872f6fd9c34c94b2dc72ba00af14c0, type: 3}
+  - {fileID: 21300000, guid: 6ab4d19b0e5b491aa7300166e8155705, type: 3}
+  - {fileID: 21300000, guid: 03bab1d45c724890b3f3c4fb097c9bfb, type: 3}
+  - {fileID: 21300000, guid: 7c4a87e017104cf8bfa1523f3e526337, type: 3}
+  - {fileID: 21300000, guid: 2019a0352e904205a7370ba7ab600eb0, type: 3}
+  - {fileID: 21300000, guid: cbc4e709545e40ec911cc991797d5b40, type: 3}
+  - {fileID: 21300000, guid: ded09471a5244c5b965325c4766cd5dd, type: 3}
+  - {fileID: 21300000, guid: 799a38a9c4964362b0db62b07288c6f9, type: 3}
+  - {fileID: 21300000, guid: b08522c1d50d484aa571186aa95f442f, type: 3}
+  - {fileID: 21300000, guid: 207254f055d244d09b18dfc866ddf9da, type: 3}
+  - {fileID: 21300000, guid: 640f6d7af81d9134495e32290aef8bed, type: 3}
+  - {fileID: 21300000, guid: b0383dd6758f98846987544b4e3588d3, type: 3}
+  - {fileID: 21300000, guid: 7487c9fd5dc40b14fa251c4bb7da3f94, type: 3}
+  - {fileID: 21300000, guid: de7cda2256d875f4dbb58f27fa3576c1, type: 3}
+  - {fileID: 21300000, guid: e617ecfa9c8db684189bfbca6021b95f, type: 3}
+  - {fileID: 21300000, guid: 8521e29a823d57a4e971a087d25de492, type: 3}
+  - {fileID: 21300000, guid: 05ada5e39bd79db48bc146b46d52abe5, type: 3}
+  - {fileID: 21300000, guid: bcef5dd065d32df49a83d3b9750c42bd, type: 3}
+  - {fileID: 21300000, guid: a72054b8c8a71ef409e45fdce6d0abd8, type: 3}
+  - {fileID: 21300000, guid: 33c972e2cc3a78d4da880a7cdf6ef6f0, type: 3}
 --- !u!114 &139054133
 MonoBehaviour:
   m_ObjectHideFlags: 0
