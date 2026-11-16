@@ -117,6 +117,7 @@ public class TutorialGuideUI : MonoBehaviour
     private Label _label; // 안내 글
     private Label _reward; // 보상 줄 ("+N조각")
     private VisualElement _strike; // 완료 줄 (안내 글 위를 가로지름)
+    private bool _multiLine; // 완료한 퀘스트 글이 두 줄 이상 (취소선을 글자에 직접)
     private float _doneElapsed = -1f; // 완료 연출 진행 시간 (-1 = 연출 중 아님)
     private Texture2D _scrollTexture; // 두루마리 그림
     private int _shownStep = -1; // 지금 글자로 보여주는 단계
@@ -278,12 +279,14 @@ public class TutorialGuideUI : MonoBehaviour
                 _label.style.color = ClearColor.linear;
                 _reward.style.color = ClearColor.linear;
                 _strike.style.backgroundColor = ClearColor.linear;
+                _multiLine = _label.resolvedStyle.height > FontSize * 1.6f; // 두 줄 이상이면 줄 하나로는 못 그음
+                if (_multiLine) _label.text = "<s>" + _label.text + "</s>"; // 줄마다 글자 취소선
             }
             _doneElapsed += Time.unscaledDeltaTime;
             float fadeStart = StrikeSeconds + HoldSeconds; // 줄 긋고 보상 보여준 뒤 사라지기 시작
             if (_doneElapsed < fadeStart + FadeSeconds + NextDelaySeconds)
             {
-                _strike.style.width = Length.Percent(100f * Mathf.Clamp01(_doneElapsed / StrikeSeconds));
+                _strike.style.width = Length.Percent(_multiLine ? 0f : 100f * Mathf.Clamp01(_doneElapsed / StrikeSeconds));
                 _panel.style.opacity = 1f - Mathf.Clamp01((_doneElapsed - fadeStart) / FadeSeconds);
                 bool showDone = _doneElapsed < fadeStart + FadeSeconds; // 사라진 뒤 쉬는 동안은 숨김
                 _panel.style.display = showDone ? DisplayStyle.Flex : DisplayStyle.None;

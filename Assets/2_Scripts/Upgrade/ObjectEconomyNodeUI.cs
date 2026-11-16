@@ -163,8 +163,7 @@ public class ObjectEconomyNodeUI : MonoBehaviour, IPointerEnterHandler, IPointer
         UpgradeTreeUI tree = UpgradeTreeUI.Instance;
         if (tree == null || !tree.isActiveAndEnabled || !GateReveals.TryMarkSeen(name)) return;
         if (SaveManager.Instance != null) SaveManager.Instance.MarkDirty(); // 본 연출을 세이브에 남김
-        _gateRevealPending = true;
-        tree.PlayGateReveal(Rect, FinishGateReveal);
+        FinishGateReveal(); // 카메라 이동 없이 그 자리에서 해금 표시만
     }
 
     private void FinishGateReveal()

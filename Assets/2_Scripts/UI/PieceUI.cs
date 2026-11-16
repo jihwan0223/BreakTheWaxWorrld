@@ -26,6 +26,8 @@ public class PieceUI : MonoBehaviour
     private Label _starLabel; // 별조각 개수
     private VisualElement _starRow; // 별조각 줄 (환생 창이나 환생 칸에 마우스를 올렸을 때만 보임)
     private long _lastStars; // 늘었는지 비교용
+    private readonly List<(Label label, string key)> _names = new List<(Label, string)>(); // 숫자 뒤 이름 글자 (언어 바뀌면 다시 씀)
+    private const int NameFontSize = 24; // px - 이름 글자 (12px 폰트의 2배라 또렷함)
 
     private class PulseState
     {
@@ -64,6 +66,7 @@ public class PieceUI : MonoBehaviour
             CurrencyManager.Instance.OnCrystalsChanged += UpdateCrystalLabel;
             CurrencyManager.Instance.OnStarShardsChanged += UpdateStarLabel;
             GameSettings.OnNumberFormatChanged += RedrawNumbers;
+            Loc.Changed += RedrawNames;
 
             UpdatePieceLabel(CurrencyManager.Instance.GetPieces());
             UpdateCrystalLabel(CurrencyManager.Instance.GetCrystals());
@@ -80,6 +83,12 @@ public class PieceUI : MonoBehaviour
             CurrencyManager.Instance.OnStarShardsChanged -= UpdateStarLabel;
         }
         GameSettings.OnNumberFormatChanged -= RedrawNumbers;
+        Loc.Changed -= RedrawNames;
+    }
+
+    private void RedrawNames()
+    {
+        foreach (var (label, key) in _names) label.text = Loc.T(key);
     }
 
     private void BuildContainer(VisualElement root)
@@ -101,14 +110,15 @@ public class PieceUI : MonoBehaviour
         background.style.alignItems = Align.Stretch;
         PixelStyle.Frame(background, PixelStyle.Box);
 
-        _pieceLabel = AddRow(background, ShardTexture(WarmShard), PixelStyle.Text.linear, out _pieceRow);
-        _crystalLabel = AddRow(background, ShardTexture(SkyShard), new Color(0.23f, 0.53f, 0.66f).linear, out _crystalRow);
+        _names.Clear();
+        _pieceLabel = AddRow(background, ShardTexture(WarmShard), PixelStyle.Text.linear, out _pieceRow, "조각");
+        _crystalLabel = AddRow(background, ShardTexture(SkyShard), new Color(0.23f, 0.53f, 0.66f).linear, out _crystalRow, "결정");
         _starLabel = AddRow(background, ShardTexture(StarShard), new Color(0.55f, 0.3f, 0.78f).linear, out _starRow);
 
         root.Add(background);
     }
 
-    private Label AddRow(VisualElement box, Texture2D iconTexture, Color color, out VisualElement row)
+    private Label AddRow(VisualElement box, Texture2D iconTexture, Color color, out VisualElement row, string nameKey = null)
     {
         row = new VisualElement();
         row.pickingMode = PickingMode.Ignore;
@@ -127,7 +137,7 @@ public class PieceUI : MonoBehaviour
 
         var label = new Label();
         label.pickingMode = PickingMode.Ignore;
-        label.style.flexGrow = 1;
+        label.style.flexGrow = nameKey == null ? 1 : 0; // 이름이 있으면 숫자 바로 뒤에 붙게
         label.style.marginLeft = 14;
         label.style.fontSize = fontSize;
         label.style.color = color;
@@ -136,6 +146,20 @@ public class PieceUI : MonoBehaviour
         label.style.marginTop = label.style.marginBottom = 0;
         label.style.transformOrigin = new TransformOrigin(Length.Percent(0), Length.Percent(50));
         row.Add(label);
+
+        if (nameKey != null) // 숫자 뒤 작은 이름 ("조각" / "결정")
+        {
+            var name = new Label(Loc.T(nameKey)); // 이름 글자
+            name.pickingMode = PickingMode.Ignore;
+            name.style.fontSize = NameFontSize;
+            name.style.color = color;
+            name.style.marginLeft = 12;
+            name.style.paddingLeft = name.style.paddingRight = 0;
+            name.style.marginTop = 4; // 큰 숫자와 아래쪽을 비슷하게 맞춤
+            name.style.unityTextAlign = TextAnchor.MiddleLeft;
+            row.Add(name);
+            _names.Add((name, nameKey));
+        }
         return label;
     }
 
