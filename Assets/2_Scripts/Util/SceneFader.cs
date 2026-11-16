@@ -100,7 +100,9 @@ public class SceneFader : MonoBehaviour
         tipBox.style.bottom = 70;
         tipBox.style.left = Length.Percent(50);
         tipBox.style.translate = new Translate(Length.Percent(-50), 0);
-        tipBox.style.minWidth = 1100;
+        tipBox.style.width = 1400; // 팁 글 길이와 상관없이 칸 크기 고정
+        tipBox.style.height = 180; // 두 줄까지 들어가는 높이
+        tipBox.style.justifyContent = Justify.Center; // 한 줄이면 세로 가운데
         tipBox.style.paddingTop = 34;
         tipBox.style.paddingBottom = 34;
         tipBox.style.paddingLeft = 48;
@@ -127,6 +129,7 @@ public class SceneFader : MonoBehaviour
         tip.style.fontSize = 36;
         tip.style.color = PixelStyle.Text.linear;
         tip.style.unityTextAlign = TextAnchor.MiddleCenter;
+        tip.style.whiteSpace = WhiteSpace.Normal; // 길면 칸 안에서 줄바꿈
         tipBox.Add(tip);
     }
 
