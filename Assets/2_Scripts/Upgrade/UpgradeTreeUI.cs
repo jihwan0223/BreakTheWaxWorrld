@@ -49,6 +49,31 @@ public class UpgradeTreeUI : MonoBehaviour, IScrollHandler, IPointerEnterHandler
         CacheNodes();
         StyleButton("CloseButton", PixelStyle.Pink, "X", new Vector2(84f, 84f));
         StyleButton("CameraResetButton", PixelStyle.Mint, "카메라 리셋", new Vector2(300f, 90f));
+        if (CrystalShortcut && !isRebirthTree) AddCrystalShortcut();
+    }
+
+    public static readonly bool CrystalShortcut = true; // "결정 트리" 바로가기 버튼 (되돌리려면 false)
+    private const string CrystalRootNodeId = "164_커서_줍기_해금"; // 결정 노드들이 시작하는 노드
+
+    // 결정 노드가 어디 있는지 몰라서 못 사는 일이 없게: 누르면 카메라가 결정 노드 쪽으로 감
+    private void AddCrystalShortcut()
+    {
+        UnityEngine.UI.Button reset = System.Array.Find(GetComponentsInChildren<UnityEngine.UI.Button>(true), b => b.name == "CameraResetButton"); // 복제할 버튼
+        if (reset == null) return;
+        UnityEngine.UI.Button button = Instantiate(reset, reset.transform.parent); // 같은 모양으로 하나 더
+        button.name = "CrystalTreeButton";
+        var rect = (RectTransform)button.transform; // 새 버튼 자리
+        var resetRect = (RectTransform)reset.transform; // 원래 버튼 자리
+        float step = resetRect.sizeDelta.y + 12f; // 버튼 높이 + 틈
+        rect.anchoredPosition = resetRect.anchoredPosition + new Vector2(0f, resetRect.anchorMin.y > 0.5f ? -step : step); // 위쪽에 붙어 있으면 아래로, 아니면 위로
+        for (int i = 0; i < button.onClick.GetPersistentEventCount(); i++) // 복제된 카메라 리셋 연결을 끔
+            button.onClick.SetPersistentListenerState(i, UnityEngine.Events.UnityEventCallState.Off);
+        button.onClick.AddListener(() =>
+        {
+            RectTransform node = FindNode(CrystalRootNodeId); // 결정 트리 첫 노드
+            if (node != null && node.gameObject.activeInHierarchy) PlayGateReveal(node, null, GuideZoom);
+        });
+        StyleButton("CrystalTreeButton", PixelStyle.Butter, "결정 트리", new Vector2(300f, 90f));
     }
 
     private void StyleButton(string buttonName, PixelStyle.Tone tone, string label, Vector2 size)
@@ -235,20 +260,35 @@ public class UpgradeTreeUI : MonoBehaviour, IScrollHandler, IPointerEnterHandler
         content.localScale = new Vector3(newScale, newScale, 1f);
     }
 
-    public void PlayGateReveal(RectTransform node, System.Action onArrive)
+    // 튜토리얼 안내용: 이름으로 노드 찾기 (없으면 null)
+    public RectTransform FindNode(string id)
+    {
+        UpgradeNodeUI node = System.Array.Find(_upgradeNodes, n => n != null && n.Id == id);
+        return node != null ? node.Rect : null;
+    }
+
+    // 튜토리얼 안내용: 오브젝트 해금 노드 찾기 (없으면 null)
+    public RectTransform FindUnlockNode(int objectIndex)
+    {
+        ObjectEconomyNodeUI node = System.Array.Find(_economyNodes, n => n != null && !n.IsGain && n.ObjectIndex == objectIndex);
+        return node != null ? node.Rect : null;
+    }
+
+    public const float GuideZoom = 0.5f; // 튜토리얼 / 결정 트리 바로가기로 노드를 보여줄 때 배율 (주변 노드도 보이게)
+
+    public void PlayGateReveal(RectTransform node, System.Action onArrive, float revealZoom = 1.1f)
     {
         if (content == null || !isActiveAndEnabled) { onArrive?.Invoke(); return; }
         _pendingReveals += onArrive;
-        StartCoroutine(GateRevealRoutine(node, onArrive));
+        StartCoroutine(GateRevealRoutine(node, onArrive, revealZoom));
     }
 
     private System.Action _pendingReveals;
     private bool _revealRunning;
 
-    private System.Collections.IEnumerator GateRevealRoutine(RectTransform node, System.Action onArrive)
+    private System.Collections.IEnumerator GateRevealRoutine(RectTransform node, System.Action onArrive, float revealZoom)
     {
         const float moveSeconds = 0.9f; // 초
-        const float revealZoom = 1.1f;
         while (_revealRunning) yield return null;
         _revealRunning = true;
         yield return new WaitForSecondsRealtime(0.4f);

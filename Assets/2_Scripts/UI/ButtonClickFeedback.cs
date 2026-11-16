@@ -15,7 +15,9 @@ public class ButtonClickFeedback : MonoBehaviour
     {
         _button = GetComponent<Button>();
 
-        _player = gameObject.AddComponent<MMF_Player>();
+        _player = GetComponent<MMF_Player>(); // 복제해서 만든 버튼엔 이미 붙어 있음
+        if (_player == null) _player = gameObject.AddComponent<MMF_Player>();
+        _player.FeedbacksList.Clear();
         var scale = new MMF_Scale
         {
             AnimateScaleTarget = transform,

@@ -81,6 +81,7 @@ public class ZoneArrowsUI : MonoBehaviour
 
         root.Add(_prevArrow);
         root.Add(_nextArrow);
+        TutorialGuideUI.Targets["next"] = _nextArrow;
     }
 
     private VisualElement CreateArrow(bool isLeft)

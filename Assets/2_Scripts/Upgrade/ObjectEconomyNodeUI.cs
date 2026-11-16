@@ -38,6 +38,9 @@ public class ObjectEconomyNodeUI : MonoBehaviour, IPointerEnterHandler, IPointer
     private bool _prereqResolved;
     private string _tooltipText;
 
+    public int ObjectIndex => objectIndex;
+    public bool IsGain => isGain;
+    private TextMeshProUGUI _nameLabel; // 노드 아래 이름 글자
     public RectTransform Rect => _rect != null ? _rect : (_rect = (RectTransform)transform);
 
     public bool IsInThisVersion => !(GameSettings.IsDemo && fullVersionOnly) && !GameSettings.IsDemoLockedObject(objectIndex); // 데모에선 풀버전 노드 제외
@@ -191,7 +194,7 @@ public class ObjectEconomyNodeUI : MonoBehaviour, IPointerEnterHandler, IPointer
 
         // 이미 해금됐으면 TryUnlock이 true라 따로 막음
         bool alreadyDone = !isGain && ObjectManager.Instance.IsUnlocked(objectIndex);
-        bool success = !alreadyDone && !IsGateClosed && (isGain ? ObjectManager.Instance.TryUpgradeGain(objectIndex) : ObjectManager.Instance.TryUnlock(objectIndex));
+        bool success = !alreadyDone && !IsGateClosed && !TutorialGuideUI.IsBlocked(name) && (isGain ? ObjectManager.Instance.TryUpgradeGain(objectIndex) : ObjectManager.Instance.TryUnlock(objectIndex));
         if (!success)
         {
             PlayDenyShake();
@@ -225,7 +228,11 @@ public class ObjectEconomyNodeUI : MonoBehaviour, IPointerEnterHandler, IPointer
 
         CheckGateOpened();
         UpdateIcon();
-        NoticeBadge.Set(ref _badge, Rect, CanBuy());
+        bool blocked = TutorialGuideUI.IsBlocked(name); // 튜토리얼 첫 단계: 지금 할 노드만 살 수 있음
+        if (_icon != null) _icon.color = blocked ? TutorialGuideUI.BlockedTint : Color.white;
+        NoticeBadge.Set(ref _badge, Rect, !blocked && CanBuy());
+        NodeNameLabel.Set(ref _nameLabel, Rect, IsGateClosed || (!isGain && !ObjectManager.Instance.IsUnlocked(objectIndex) && !ObjectManager.Instance.IsUnlockOrderMet(objectIndex))
+            ? "???" : Loc.T(isGain ? "{0} 획득량" : "{0} 해금", ObjectManager.Instance.GetObjectAt(objectIndex).objectName));
         if (justRevealed)
         {
             PlayShake();

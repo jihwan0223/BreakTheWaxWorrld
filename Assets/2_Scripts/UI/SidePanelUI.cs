@@ -221,6 +221,8 @@ public partial class SidePanelUI : MonoBehaviour
         _statsButton.style.display = DisplayStyle.None;
         Button settingsButton = CreateGearButton();
 
+        TutorialGuideUI.Targets["upgrade"] = upgradeButton;
+        TutorialGuideUI.Targets["weapon"] = weaponButton;
         _upgradeBadge = CreateBadge();
         upgradeButton.Add(_upgradeBadge);
         _crystalBadge = CreateBadge(crystal: true);

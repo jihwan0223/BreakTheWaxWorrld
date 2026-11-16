@@ -168,6 +168,7 @@ public class SaveManager : MonoBehaviour
             statBrokenPerObject = GameStats.BrokenPerObject,
             pieceTutorialDone = PieceTutorial.Instance != null && PieceTutorial.Instance.Done,
             tutorialStep = TutorialGuideUI.Step,
+            tutorialVersion = TutorialGuideUI.Version,
             tutorialPendingReward = TutorialGuideUI.PendingReward,
             unlockedObjects = unlockedObjects,
             gainLevels = gainLevels,
@@ -216,8 +217,7 @@ public class SaveManager : MonoBehaviour
 
         if (PieceTutorial.Instance != null)
             PieceTutorial.Instance.Done = data.pieceTutorialDone;
-        TutorialGuideUI.Step = data.tutorialStep;
-        TutorialGuideUI.PendingReward = data.tutorialPendingReward;
+        TutorialGuideUI.Loaded(data.tutorialStep, data.tutorialVersion, data.tutorialPendingReward);
 
         // Equip 전에 해금 상태부터 복원
         if (ObjectManager.Instance != null && data.unlockedObjects != null)

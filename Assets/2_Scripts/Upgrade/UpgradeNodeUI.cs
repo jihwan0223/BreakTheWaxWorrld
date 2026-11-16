@@ -63,6 +63,7 @@ public class UpgradeNodeUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     private bool _wasRevealed;
     private bool _refreshedOnce;
     private GameObject _badge;
+    private TMPro.TextMeshProUGUI _nameLabel; // 노드 아래 이름 글자
 
     public string Id => name;
     public string DisplayName => displayName;
@@ -134,7 +135,7 @@ public class UpgradeNodeUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     private void HandleClicked()
     {
         if (UpgradeManager.Instance == null) return;
-        if (!UpgradeManager.Instance.TryUpgrade(Id))
+        if (TutorialGuideUI.IsBlocked(Id) || !UpgradeManager.Instance.TryUpgrade(Id))
         {
             PlayDenyShake();
             return;
@@ -296,7 +297,10 @@ public class UpgradeNodeUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
 
         CheckGateOpened();
         UpdateIcon(UpgradeManager.Instance.GetLevel(Id));
-        NoticeBadge.Set(ref _badge, Rect, UpgradeManager.Instance.CanUpgrade(Id), UpgradeManager.Instance.UsesCrystals(Id) || UpgradeManager.Instance.UsesStarShards(Id));
+        bool blocked = TutorialGuideUI.IsBlocked(Id); // 튜토리얼 첫 단계: 지금 할 노드만 살 수 있음
+        if (_icon != null) _icon.color = blocked ? TutorialGuideUI.BlockedTint : Color.white;
+        NoticeBadge.Set(ref _badge, Rect, !blocked && UpgradeManager.Instance.CanUpgrade(Id), UpgradeManager.Instance.UsesCrystals(Id) || UpgradeManager.Instance.UsesStarShards(Id));
+        NodeNameLabel.Set(ref _nameLabel, Rect, IsMasked() || IsGateClosed ? "???" : Loc.T(displayName));
         if (justRevealed)
         {
             PlayShake();

@@ -1,7 +1,8 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-// 처음 플레이 퀘스트 안내: 보스 도전 버튼 자리 아래 카드에 두루마리 아이콘 + 다음 할 일을 보여줌 (책상 부수고 맵2 가면 끝)
+// 처음 플레이 퀘스트 안내: 위쪽 줄 카드에 두루마리 아이콘 + 다음 할 일을 보여주고, 눌러야 할 버튼/노드를 화살표로 가리킴 (책상 부수고 맵2 가면 끝)
 // 단계는 매 프레임 상태를 보고 넘어감 (이벤트 구독 없음), 저장은 Step 하나
 public class TutorialGuideUI : MonoBehaviour
 {
@@ -9,43 +10,96 @@ public class TutorialGuideUI : MonoBehaviour
 
     public static int Step { get; set; } // 진행 단계 (저장됨). 0 = 시작, Finished = 끝
     public static long PendingReward { get; set; } // 끝냈지만 아직 안 준 퀘스트 보상 조각 (저장됨, 완료 연출 때 지급)
+    private static bool _skipRewardsOnce; // 불러온 직후 첫 확인은 보상 없이 (이미 해 둔 일에 보상을 몰아 주지 않게)
 
-    private const float Left = 23f; // 조각 상자 / 보스 도전 버튼과 같은 왼쪽 (둘 다 left 20 + unity-button 기본 여백 3px)
-    private const float Top = 172f; // 조각 표시 아래 (보스 도전 버튼 자리 142보다 조금 아래)
-    private const float BelowButton = 142f + 80f + 12f; // 보스 도전 버튼(142, 높이 80)이 떠 있을 때 그 아래
-    private const int FontSize = 28; // px - 안내 글 (UiColored는 굵기 없음)
+    // 세이브를 불러왔을 때. 단계 구성이 바뀐 옛 세이브는 처음부터 다시 훑음 (끝낸 세이브는 끝난 채로)
+    public static void Loaded(int step, int version, long pendingReward)
+    {
+        const int oldFinished = 10; // 버전 1의 끝 번호
+        Step = version == Version ? step : step >= oldFinished ? Finished : 0;
+        PendingReward = version == Version ? pendingReward : 0;
+        _skipRewardsOnce = true;
+    }
+
+    // 튜토리얼 첫 단계(첫 강화 / 커서 줍기)에선 그 노드 말고는 못 삼
+    public static bool IsBlocked(string nodeId) =>
+        ForceFirstSteps && ((Step == StepUpgrade && nodeId != UpgradeManager.FirstNodeId) || (Step == StepCrystal && nodeId != CursorNodeId));
+
+    public const int Version = 2; // 단계 구성 번호 (세이브에 같이 저장, 다르면 Loaded에서 단계를 다시 맞춤)
+
+    // --- 되돌리기 스위치: false로 바꾸면 그 기능만 예전처럼 ---
+    public static readonly bool ForceFirstSteps = true; // 첫 강화 / 커서 줍기 단계에선 그 노드만 살 수 있음
+    public static readonly bool GuideInTree = true; // 업그레이드 창에서 할 노드 위에 화살표 (살 수 있을 때만)
+    public static readonly bool PointAtButtons = true; // 눌러야 할 버튼(업그레이드 / 무기 / 보스 도전 / 다음 맵)에 화살표 (살 수 있을 때만)
+    public static readonly bool CardInTopBar = true; // 카드를 위쪽 줄(조각 상자와 버튼 사이)에 (false = 왼쪽 위 조각 상자 아래, 오브젝트를 가릴 수 있음)
+
+    public static readonly Dictionary<string, VisualElement> Targets = new Dictionary<string, VisualElement>(); // 화살표가 가리킬 버튼들 (각 UI가 등록)
+    public static readonly Color BlockedTint = new Color(0.35f, 0.35f, 0.35f, 1f); // 잠긴 노드 색 (어둡게)
+
+    private const float Left = 23f; // (CardInTopBar 끌 때) 조각 상자 / 보스 도전 버튼과 같은 왼쪽
+    private const float Top = 172f; // (CardInTopBar 끌 때) 조각 표시 아래
+    private const float BelowButton = 142f + 80f + 12f; // (CardInTopBar 끌 때) 보스 도전 버튼이 떠 있으면 그 아래
+    private const float BarLeft = 380f; // 위쪽 줄: 조각 상자 오른쪽 옆
+    private const float BarTop = 20f; // 위쪽 줄: 조각 상자 / 버튼과 같은 높이
+    private const float BarGap = 16f; // 위쪽 줄: 카드와 업그레이드 버튼 사이 틈
+    private const float BarMaxWidth = 455f; // 위쪽 줄: 버튼 자리를 아직 모를 때 카드 최대 너비
+    private const int FontSize = 24; // px - 안내 글 (12px 폰트의 2배라 또렷함, 길면 두 줄)
     private const float FinalSeconds = 5f; // 마지막 안내가 떠 있는 시간 (초, 실제 시간)
     private const float PanelAlpha = 0.7f; // 카드 투명도 (보스전 패널과 같음)
 
     private const int StepBreakEgg = 0; // 달걀 부수기
     private const int StepPick = 1; // 조각 줍기
-    private const int StepUpgrade = 2; // 첫 업그레이드
+    private const int StepUpgrade = 2; // 달걀 드랍량 강화 (첫 업그레이드)
     private const int StepCrystal = 3; // 결정으로 커서 줍기 해금
-    private const int StepApple = 4; // 사과 해금
-    private const int StepButter = 5; // 버터 해금
-    private const int StepBread = 6; // 식빵 해금
-    private const int StepDesk = 7; // 책상 부수기 (맵2 해금)
-    private const int StepNextMap = 8; // 맵2로 이동
-    private const int StepFinal = 9; // 새 맵 보상 안내
-    public const int Finished = 10; // 끝
+    private const int StepFist = 4; // 맨손 데미지 강화
+    private const int StepApple = 5; // 사과 해금
+    private const int StepBroom = 6; // 결정으로 빗자루(자동 줍기) 해금
+    private const int StepButter = 7; // 버터 해금
+    private const int StepBread = 8; // 식빵 해금
+    private const int StepWeapon = 9; // 무기 창에서 프라이팬 사기
+    private const int StepDeskUnlock = 10; // 책상 해금
+    private const int StepDesk = 11; // 보스 도전으로 책상 부수기 (맵2 해금)
+    private const int StepNextMap = 12; // 맵2로 이동
+    private const int StepFinal = 13; // 새 맵 보상 안내
+    public const int Finished = 14; // 끝
+
+    private const string CursorNodeId = "164_커서_줍기_해금"; // 커서 줍기 노드
+    private const string FistNodeId = "1_맨손_데미지_강화"; // 맨손 데미지 노드
+    private const string BroomNodeId = "161_자동_줍기_해금"; // 빗자루 노드
 
     private static readonly string[] Texts = // 단계별 안내 글 (한국어 키, Localization.csv에 번역)
     {
         "달걀을 클릭해 부수세요",
         "떨어진 조각을 주우세요",
-        "업그레이드 창에서 조각 {0}개로 강화하세요",
-        "업그레이드 창에서 커서 줍기를 해금하세요",
-        "업그레이드 창에서 사과를 해금하세요",
-        "업그레이드 창에서 버터를 해금하세요",
-        "업그레이드 창에서 식빵을 해금하세요",
+        "조각 {0}개로 달걀 드랍량을 강화하세요",
+        "결정으로 커서 줍기를 해금하세요",
+        "맨손 데미지를 강화하세요",
+        "사과를 해금하세요",
+        "결정으로 자동 줍기를 해금하세요",
+        "버터를 해금하세요",
+        "식빵을 해금하세요",
+        "무기 창에서 프라이팬을 사세요",
+        "책상을 해금하세요",
         "보스 도전으로 책상을 부수세요",
         "오른쪽 화살표로 다음 맵에 가세요",
         "새 지역일수록 보상이 커져요.",
     };
 
-    // 단계를 끝내면 주는 조각 = 다음에 살 오브젝트 해금 가격 x RewardRatio (-1 = 보상 없음)
-    // 달걀/줍기는 보상을 주면 줍기 단계가 저절로 끝나서 없음
-    private static readonly int[] RewardObject = { -1, -1, 1, 1, 2, 3, 4, 6, 6 }; // 단계별 기준 오브젝트 (사과 1 / 버터 2 / 식빵 3 / 책상 4 / 자전거 6)
+    // 단계별 업그레이드 트리 노드 (없으면 null) - 노드 이름 또는 "unlock:오브젝트 번호"
+    private static readonly string[] TreeTargets =
+    {
+        null, null, UpgradeManager.FirstNodeId, CursorNodeId, FistNodeId, "unlock:1", BroomNodeId, "unlock:2", "unlock:3", null, "unlock:4", null, null, null,
+    };
+
+    // 단계별 눌러야 할 버튼 (Targets 키, 없으면 null). 트리 노드 단계는 "upgrade"
+    private static readonly string[] ButtonTargets =
+    {
+        null, null, "upgrade", "upgrade", "upgrade", "upgrade", "upgrade", "upgrade", "upgrade", "weapon", "upgrade", "boss", "next", null,
+    };
+
+    // 단계를 끝내면 주는 조각 = 다음에 살 것(오브젝트 해금 가격) x RewardRatio (-1 = 보상 없음)
+    // 달걀/줍기는 보상을 주면 줍기 단계가 저절로 끝나서 없음. 책상 해금 뒤엔 바로 보스라 없음
+    private static readonly int[] RewardObject = { -1, -1, 1, 1, 1, 2, 2, 3, 3, 4, -1, 6, 6 }; // 사과 1 / 버터 2 / 식빵 3 (프라이팬과 같은 가격) / 책상 4 / 자전거 6
     private const double RewardRatio = 0.3; // 해금 가격의 30%
     private const int RewardFontSize = 22; // px - 보상 줄
 
@@ -68,6 +122,13 @@ public class TutorialGuideUI : MonoBehaviour
     private int _shownStep = -1; // 지금 글자로 보여주는 단계
     private float _finalElapsed; // 마지막 안내가 떠 있던 시간
     private float _popElapsed = PopSeconds; // 새 글 연출 진행 시간
+    private VisualElement _pointer; // 버튼을 가리키는 화살표
+    private Texture2D _arrowTexture; // 화살표 그림 (아래를 가리킴)
+    private RectTransform _marker; // 업그레이드 트리 안에서 할 노드 위에 뜨는 화살표
+    private int _refreshedStep = -1; // 잠금 표시를 마지막으로 갱신한 단계
+    private const float PointerSize = 64f; // px - 버튼 화살표
+    private const float MarkerSize = 200f; // 트리 판 기준 px - 노드 화살표
+    private const float BobSpeed = 6f; // 화살표 위아래 흔들림 빠르기
 
     public static void Ensure()
     {
@@ -101,8 +162,17 @@ public class TutorialGuideUI : MonoBehaviour
 
         _panel = new VisualElement(); // 카드: 아이콘 + 글 한 줄
         _panel.style.position = Position.Absolute;
-        _panel.style.left = Left;
-        _panel.style.top = Top;
+        if (CardInTopBar)
+        {
+            _panel.style.left = BarLeft;
+            _panel.style.top = BarTop;
+            _panel.style.maxWidth = BarMaxWidth;
+        }
+        else
+        {
+            _panel.style.left = Left;
+            _panel.style.top = Top;
+        }
         _panel.style.flexDirection = FlexDirection.Row;
         _panel.style.alignItems = Align.Center;
         _panel.style.paddingLeft = 12;
@@ -123,12 +193,14 @@ public class TutorialGuideUI : MonoBehaviour
         _panel.Add(_icon);
 
         var texts = new VisualElement(); // 안내 글 + 보상 줄 (세로)
+        texts.style.flexShrink = 1; // 카드가 좁으면 글이 두 줄로
         texts.pickingMode = PickingMode.Ignore;
         _panel.Add(texts);
 
         _label = new Label();
         _label.style.fontSize = FontSize;
         _label.style.color = PixelStyle.Text.linear;
+        _label.style.whiteSpace = WhiteSpace.Normal; // 길면 줄바꿈
         _label.pickingMode = PickingMode.Ignore;
         // 글자 칸(Label)에 자식을 넣으면 글자 크기를 못 재서 카드가 잘림 - 감싸는 칸에 글과 줄을 같이 넣음
         var labelLine = new VisualElement(); // 안내 글 + 완료 줄
@@ -153,6 +225,17 @@ public class TutorialGuideUI : MonoBehaviour
         texts.Add(_reward);
 
         root.Add(_panel);
+
+        if (_arrowTexture == null) _arrowTexture = ArrowTexture();
+        _pointer = new VisualElement();
+        _pointer.style.position = Position.Absolute;
+        _pointer.style.width = PointerSize;
+        _pointer.style.height = PointerSize;
+        _pointer.style.backgroundImage = new StyleBackground(_arrowTexture);
+        _pointer.style.display = DisplayStyle.None;
+        _pointer.pickingMode = PickingMode.Ignore;
+        root.Add(_pointer);
+
         _shownStep = -1;
         Loc.Changed += Redraw;
     }
@@ -175,6 +258,7 @@ public class TutorialGuideUI : MonoBehaviour
         }
 
         bool windowOpen = UIPointerGuard.PopupOpen || Time.timeScale == 0f; // 업그레이드/설정/도감 등 창이 열려 있음 (보스 도전 버튼과 같은 기준)
+        UpdateGuide(windowOpen);
 
         // 완료 연출: 보이던 퀘스트에 줄을 긋고 보상 조각을 넣은 뒤 사라지고, 잠깐 쉬고 다음 퀘스트
         // 창이 열려 있으면(업그레이드 창에서 산 경우 등) 멈춰 있다가 창을 닫으면 시작
@@ -203,7 +287,7 @@ public class TutorialGuideUI : MonoBehaviour
                 _panel.style.opacity = 1f - Mathf.Clamp01((_doneElapsed - fadeStart) / FadeSeconds);
                 bool showDone = _doneElapsed < fadeStart + FadeSeconds; // 사라진 뒤 쉬는 동안은 숨김
                 _panel.style.display = showDone ? DisplayStyle.Flex : DisplayStyle.None;
-                if (showDone) _panel.style.top = BossChallengeUI.ChallengeShown ? BelowButton : Top;
+                if (showDone) PlaceCard();
                 return;
             }
             _doneElapsed = -1f; // 끝: 줄 지우고 다음 퀘스트 표시
@@ -223,7 +307,7 @@ public class TutorialGuideUI : MonoBehaviour
         _panel.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
         if (!show) return;
 
-        _panel.style.top = BossChallengeUI.ChallengeShown ? BelowButton : Top; // 보스 도전 버튼이 있으면 그 아래로
+        PlaceCard();
         _popElapsed += Time.unscaledDeltaTime;
         float pop = Mathf.Lerp(PopScale, 1f, Mathf.Clamp01(_popElapsed / PopSeconds)); // 새 글이 뜰 때 살짝 커졌다 돌아옴
         _panel.style.scale = new Scale(new Vector3(pop, pop, 1f));
@@ -238,22 +322,103 @@ public class TutorialGuideUI : MonoBehaviour
         _reward.style.display = reward > 0 ? DisplayStyle.Flex : DisplayStyle.None;
     }
 
-    // 이미 한 일은 건너뜀 (불러온 세이브 포함). 뒤 단계를 먼저 해도(예: 커서 줍기 안 사고 사과 해금) 그 다음 단계로 넘어감
-    private static void Advance()
+    private void PlaceCard()
+    {
+        if (!CardInTopBar) { _panel.style.top = BossChallengeUI.ChallengeShown ? BelowButton : Top; return; } // 왼쪽 위일 땐 보스 도전 버튼 아래로 비킴
+        if (Targets.TryGetValue("upgrade", out VisualElement upgrade) && upgrade.panel != null && upgrade.worldBound.width > 0f)
+            _panel.style.maxWidth = Mathf.Max(200f, upgrade.worldBound.xMin - BarLeft - BarGap); // 업그레이드 버튼을 넘지 않게
+    }
+
+    // 지금 할 일을 화면에서 가리킴: 창 밖에선 눌러야 할 버튼, 업그레이드 창 안에선 할 노드. 둘 다 살 수 있을 때만 (돈이 모이면 뜸)
+    private void UpdateGuide(bool windowOpen)
+    {
+        float bob = Mathf.Abs(Mathf.Sin(Time.unscaledTime * BobSpeed)); // 0~1 위아래 흔들림
+        UpgradeTreeUI tree = UpgradeTreeUI.Instance; // 업그레이드 트리 (환생 창 아님)
+        bool treeOpen = tree != null && UpgradeTreeUI.Current == tree;
+
+        if (treeOpen && _refreshedStep != Step) tree.RefreshAll(); // 단계가 바뀌면 잠금(어둡게) 표시 갱신
+        if (treeOpen) _refreshedStep = Step;
+
+        bool affordable = TargetAffordable(); // 지금 단계의 것을 살 돈이 있음
+
+        // 업그레이드 창 안: 할 노드 위에 화살표 (카메라는 안 움직임)
+        RectTransform node = null; // 지금 할 노드
+        string target = Step >= 0 && Step < TreeTargets.Length ? TreeTargets[Step] : null;
+        if (GuideInTree && treeOpen && target != null && affordable)
+        {
+            node = target.StartsWith("unlock:") ? tree.FindUnlockNode(int.Parse(target.Substring(7))) : tree.FindNode(target);
+            if (node != null && !node.gameObject.activeInHierarchy) node = null; // 아직 안 보이는 노드
+        }
+        if (node != null)
+        {
+            if (_marker == null)
+            {
+                var markerObject = new GameObject("TutorialMarker", typeof(RectTransform), typeof(UnityEngine.UI.Image)); // 노드 화살표
+                var image = markerObject.GetComponent<UnityEngine.UI.Image>(); // 화살표 그림
+                image.sprite = Sprite.Create(_arrowTexture, new Rect(0, 0, 16, 16), new Vector2(0.5f, 0.5f), 16);
+                image.raycastTarget = false; // 노드 클릭을 가로채지 않게
+                _marker = (RectTransform)markerObject.transform;
+                _marker.sizeDelta = new Vector2(MarkerSize, MarkerSize);
+                _marker.anchorMin = _marker.anchorMax = new Vector2(0.5f, 1f);
+                _marker.pivot = new Vector2(0.5f, 0f);
+            }
+            if (_marker.parent != node) _marker.SetParent(node, false);
+            _marker.gameObject.SetActive(true);
+            _marker.anchoredPosition = new Vector2(0f, 10f + bob * 40f);
+        }
+        else if (_marker != null) _marker.gameObject.SetActive(false);
+
+        // 창 밖: 눌러야 할 버튼 아래(화면 아래쪽 버튼이면 위)에 화살표
+        string key = Step >= 0 && Step < ButtonTargets.Length ? ButtonTargets[Step] : null;
+        VisualElement button = null; // 가리킬 버튼
+        bool busy = windowOpen || ZoneBreaker.ActiveBoss != null || _doneElapsed >= 0f; // 창 / 보스전 / 완료 연출 중엔 숨김
+        if (PointAtButtons && !busy && key != null && affordable) Targets.TryGetValue(key, out button);
+        if (button == null || button.panel == null || button.resolvedStyle.display == DisplayStyle.None || button.worldBound.width <= 0f)
+        {
+            _pointer.style.display = DisplayStyle.None;
+            return;
+        }
+        Rect bound = button.worldBound; // 버튼 자리 (화면 px)
+        bool below = bound.center.y < _pointer.parent.worldBound.height * 0.5f; // 화면 위쪽 버튼이면 그 아래에서 위를 가리킴
+        _pointer.style.display = DisplayStyle.Flex;
+        _pointer.style.left = bound.center.x - PointerSize * 0.5f;
+        _pointer.style.top = below ? bound.yMax + 4f + bob * 14f : bound.yMin - PointerSize - 4f - bob * 14f;
+        _pointer.style.rotate = new Rotate(below ? 180f : 0f);
+    }
+
+    // 지금 단계에서 사야 할 것을 살 수 있는지 (사는 단계가 아니면 true)
+    private static bool TargetAffordable()
+    {
+        if (Step == StepWeapon) return WeaponManager.Instance != null && WeaponManager.Instance.AnyUnlockAffordable();
+        string target = Step >= 0 && Step < TreeTargets.Length ? TreeTargets[Step] : null; // 이 단계 노드
+        if (target == null) return true;
+        if (!target.StartsWith("unlock:")) return UpgradeManager.Instance != null && UpgradeManager.Instance.CanUpgrade(target);
+        int index = int.Parse(target.Substring(7)); // 해금할 오브젝트 번호
+        return ObjectManager.Instance != null && CurrencyManager.Instance != null && ObjectManager.Instance.IsUnlockOrderMet(index)
+            && CurrencyManager.Instance.GetPieces() >= ObjectManager.Instance.GetUnlockCost(index);
+    }
+
+    // 지금 단계를 끝내면 다음 단계로. 뒤 단계를 먼저 해 둬도 지금 단계는 그대로 남고,
+    // 지금 단계를 끝내면 미리 해 둔 다음 단계가 화면에 뜨자마자 바로 완료 연출 (한 단계씩)
+    private void Advance()
     {
         ZoneManager zones = ZoneManager.Instance; // 맵 상태
         ObjectManager objects = ObjectManager.Instance; // 해금 상태
         if (zones == null || objects == null) return;
-        if (Step == 0 && zones.UnlockedMaxZone >= 1) { Step = Finished; return; } // 튜토리얼 생기기 전에 맵2를 연 옛 세이브
+        if (Step == 0 && zones.UnlockedMaxZone >= 1) { Step = Finished; _skipRewardsOnce = false; return; } // 튜토리얼 생기기 전에 맵2를 연 옛 세이브
 
-        for (int s = StepFinal - 1; s >= Step; s--) // 끝낸 단계 중 가장 뒤 단계의 다음으로
-            if (StepDone(s, zones, objects))
-            {
-                for (int done = Step; done <= s; done++) // 건너뛴 단계 보상도 같이
-                    PendingReward += Reward(done); // 완료 연출 때 지급
-                Step = s + 1;
-                break;
-            }
+        if (_skipRewardsOnce) // 불러온 직후: 이미 해 둔 일은 연출 / 보상 없이 건너뜀
+        {
+            _skipRewardsOnce = false;
+            while (Step < StepFinal && StepDone(Step, zones, objects)) Step++;
+            return;
+        }
+        if (_shownStep != Step || _doneElapsed >= 0f) return; // 지금 단계가 화면에 뜬 뒤에만 (완료 연출이 하나씩 보이게)
+        if (Step < StepFinal && StepDone(Step, zones, objects))
+        {
+            PendingReward += Reward(Step); // 완료 연출 때 지급
+            Step++;
+        }
     }
 
     private static long Reward(int step)
@@ -270,9 +435,13 @@ public class TutorialGuideUI : MonoBehaviour
             case StepPick: return CurrencyManager.Instance != null && CurrencyManager.Instance.TotalPieces > 0;
             case StepUpgrade: return UpgradeManager.Instance != null && UpgradeManager.Instance.FirstUpgradeBought;
             case StepCrystal: return UpgradeManager.Instance != null && UpgradeManager.Instance.HoverPickupIsUnlocked;
+            case StepFist: return UpgradeManager.Instance != null && UpgradeManager.Instance.GetLevel(FistNodeId) >= 1;
             case StepApple: return objects.IsUnlocked(1);
+            case StepBroom: return UpgradeManager.Instance != null && UpgradeManager.Instance.AutoSweepIsUnlocked;
             case StepButter: return objects.IsUnlocked(2);
             case StepBread: return objects.IsUnlocked(3);
+            case StepWeapon: return WeaponManager.Instance != null && WeaponManager.Instance.IsUnlocked(1);
+            case StepDeskUnlock: return objects.IsUnlocked(4);
             case StepDesk: return zones.UnlockedMaxZone >= 1;
             case StepNextMap: return zones.CurrentZone >= 1;
             default: return false;
@@ -292,6 +461,25 @@ public class TutorialGuideUI : MonoBehaviour
         "..OPPOOOOPPpO...", "..OPPPPPPPPpO...", "..OPPOOOOOPpO...", "..OPPPPPPPPpO...", "..OPPPPPPPPpO...", ".OLPPPPPPPPPpO..",
         ".OPPPPPPPPPPpO..", "..OOOOOOOOOOO...", "................", "................",
     };
+
+    // 아래를 가리키는 16x16 도트 화살표 (노란색 + 어두운 테두리)
+    private static Texture2D ArrowTexture()
+    {
+        const int size = 16; // 도트 수
+        var fill = new bool[size, size]; // 화살표 안쪽 (y = 0이 위)
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+                fill[x, y] = y < 8 ? x >= 5 && x <= 10 && y >= 1 : Mathf.Abs(x - 7.5f) <= 14.5f - y; // 위는 기둥, 아래는 세모
+        var texture = new Texture2D(size, size, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                bool edge = fill[x, y] && (x == 0 || y == 0 || x == size - 1 || y == size - 1 || !fill[x - 1, y] || !fill[x + 1, y] || !fill[x, y - 1] || !fill[x, y + 1]); // 테두리 칸
+                texture.SetPixel(x, size - 1 - y, !fill[x, y] ? Color.clear : edge ? new Color32(58, 42, 32, 255) : new Color32(255, 205, 60, 255));
+            }
+        texture.Apply();
+        return texture;
+    }
 
     private static Texture2D PixelTexture(string[] rows)
     {

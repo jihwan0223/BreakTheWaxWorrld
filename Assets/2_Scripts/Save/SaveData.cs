@@ -30,6 +30,7 @@ public class SaveData
     public long[] statBrokenPerObject;
     public bool pieceTutorialDone;
     public int tutorialStep; // 안내 글 진행 단계 (TutorialGuideUI)
+    public int tutorialVersion; // 안내 단계 구성 번호 (TutorialGuideUI.Version) - 다르면 단계를 다시 맞춤
     public long tutorialPendingReward; // 끝냈지만 아직 안 준 퀘스트 보상 조각
     public bool[] unlockedObjects;
     public int[] gainLevels;

@@ -90,6 +90,7 @@ public class BossChallengeUI : MonoBehaviour
         PixelStyle.Button(_challengeButton, PixelStyle.Pink);
         _challengeButton.style.display = DisplayStyle.None;
         GuardPointer(_challengeButton);
+        TutorialGuideUI.Targets["boss"] = _challengeButton;
         root.Add(_challengeButton);
 
         _fightPanel = new VisualElement();
