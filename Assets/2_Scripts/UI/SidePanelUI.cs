@@ -1012,8 +1012,8 @@ public partial class SidePanelUI : MonoBehaviour
         foreach (Click click in root.GetComponentsInChildren<Click>(true))
         {
             int index = click.ObjectIndex; // 이 오브젝트 번호
-            if (index < 0 || !ObjectManager.Instance.IsUnlocked(index)) continue;
-            if (!click.enabled) continue; // UnlockGate가 끈 것 (안 산 추가 배치분)
+            var gate = click.GetComponent<UnlockGate>(); // 해금 / 추가 배치 조건
+            if (index < 0 || !(gate != null ? gate.Visible : ObjectManager.Instance.IsUnlocked(index))) continue; // 게임에서 안 보이는 것 (잠김 / 안 산 추가 배치분) - 보스는 잠겨도 왁스 없이 보임
             var renderer = click.GetComponent<SpriteRenderer>(); // 게임 안 그림
             Sprite[] stages = ObjectManager.Instance.GetObjectAt(index).healthStages; // 체력 단계 그림 (0 = 멀쩡함)
             Sprite sprite = stages != null && stages.Length > 0 && stages[0] != null ? stages[0] : renderer != null ? renderer.sprite : null; // 안 깨진 그림

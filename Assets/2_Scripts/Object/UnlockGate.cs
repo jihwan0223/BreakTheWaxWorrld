@@ -33,6 +33,9 @@ public class UnlockGate : MonoBehaviour
         _behaviours = list.ToArray();
     }
 
+    // 게임 화면에 보이는지 (보스처럼 잠겨도 보이는 것 포함) - 도감 맵 그림용
+    public bool Visible => _shown || keepVisibleWhenLocked;
+
     void OnEnable() => _applied = false;
 
     void Update()
