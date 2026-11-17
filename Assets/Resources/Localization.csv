@@ -512,3 +512,11 @@ Shift를 누른 채 노드를 누르면 살 수 있는 만큼 레벨을 한 번�
 모니터 주사율에 맞춰 화면 찢김을 줄여요.,Matches your monitor to reduce screen tearing.,モニターに合わせて画面のずれを減らします。,配合显示器减少画面撕裂。,Подстраивается под монитор и убирает разрывы кадра.,Se ajusta al monitor para reducir el tearing.,Ajusta ao monitor para reduzir o tearing.,Passt sich dem Monitor an und verhindert Tearing.,Se cale sur l'écran pour réduire le tearing.
 조각,Pieces,かけら,碎片,Осколки,Fragmentos,Fragmentos,Splitter,Fragments
 결정,Crystals,結晶,结晶,Кристаллы,Cristales,Cristais,Kristalle,Cristaux
+마우스를 누른 채 끌어서 화면 옮기기,Hold the mouse button and drag to move the view,マウスを押したままドラッグして画面を動かす,按住鼠标拖动来移动画面,Зажмите кнопку мыши и тяните экран,Mantén pulsado el ratón y arrastra para mover la vista,Segure o botão do mouse e arraste para mover a tela,Maustaste halten und ziehen um die Ansicht zu verschieben,Maintiens le clic et fais glisser pour déplacer la vue
+휠로 확대하기,Zoom in with the wheel,ホイールで拡大,用滚轮放大,Приблизьте колесом,Acerca con la rueda,Aproxime com a roda,Mit dem Mausrad hineinzoomen,Zoome avec la molette
+휠로 축소하기,Zoom out with the wheel,ホイールで縮小,用滚轮缩小,Отдалите колесом,Aleja con la rueda,Afaste com a roda,Mit dem Mausrad herauszoomen,Dézoome avec la molette
+업그레이드 창에서 화면을 움직여 보세요,Try moving the view in the upgrade window,アップグレード画面で画面を動かしてみよう,在升级窗口中移动画面试试,Подвигайте экран в окне улучшений,Prueba a mover la vista en la ventana de mejoras,Tente mover a tela na janela de melhorias,Bewege die Ansicht im Upgrade-Fenster,Déplace la vue dans la fenêtre d'améliorations
+우클릭 타격,Right Click Strike,右クリック攻撃,右键打击,Удар правой кнопкой,Golpe con clic derecho,Golpe com clique direito,Rechtsklick-Schlag,Frappe clic droit
+우클릭으로도 오브젝트를 때릴 수 있습니다.,You can also hit objects with right click.,右クリックでもオブジェクトを叩けます。,也可以用右键打击物体。,Можно бить объекты и правой кнопкой.,También puedes golpear objetos con clic derecho.,Você também pode golpear objetos com o clique direito.,Du kannst Objekte auch mit Rechtsklick treffen.,Tu peux aussi frapper les objets avec le clic droit.
+데미지 +{0},Damage +{0},ダメージ +{0},伤害 +{0},Урон +{0},Daño +{0},Dano +{0},Schaden +{0},Dégâts +{0}
+조각 획득 +{0}%,Piece Gain +{0}%,かけら獲得 +{0}%,碎片获取 +{0}%,Получение осколков +{0}%,Obtención de fragmentos +{0}%,Ganho de fragmentos +{0}%,Splittergewinn +{0}%,Gain de fragments +{0}%

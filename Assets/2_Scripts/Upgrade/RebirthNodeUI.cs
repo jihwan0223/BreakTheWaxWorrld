@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-// 업그레이드 트리의 환생 칸: 누르면 노드가 소용돌이로 빨려 들어간 뒤 처음부터 다시 시작 (데모는 감사창)
+// 업그레이드 트리의 환생 칸: 누르면 노드가 소용돌이로 빨려 들어간 뒤 처음부터 다시 시작
 [RequireComponent(typeof(Image), typeof(Button))]
 public class RebirthNodeUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
@@ -12,6 +12,10 @@ public class RebirthNodeUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     [SerializeField] private long crystalCost = 1_000_000; // 첫 환생 결정 가격 (1M)
     [SerializeField] private float costGrowth = 5f; // 환생할 때마다 가격 배율
     [SerializeField] private long starShardReward = 1; // 환생할 때 받는 별조각 최소값
+
+    [Header("데모 가격 (맵1 클리어 뒤 / 맵2 클리어 뒤 / 맵3 클리어 쯤, 그 뒤는 costGrowth배씩)")]
+    [SerializeField] private long[] demoPieceCosts = { 10_000, 3_000_000, 100_000_000 }; // 데모 n번째 환생 조각 가격
+    [SerializeField] private long[] demoCrystalCosts = { 10, 50, 200 }; // 데모 n번째 환생 결정 가격
 
     [Header("소용돌이 연출")]
     [SerializeField] private float vortexSeconds = 2.6f; // 노드가 다 빨려 들어가는 시간 (초)
@@ -83,8 +87,8 @@ public class RebirthNodeUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
     // 일반 노드와 같은 툴팁: 이름 / 설명(조건) / 가격
     private UpgradeTooltip.Content BuildTooltipContent()
     {
-        long pieceCost = CurrentCost(this.pieceCost); // 이번 환생 조각 가격
-        long crystalCost = CurrentCost(this.crystalCost); // 이번 환생 결정 가격
+        long pieceCost = CurrentCost(this.pieceCost, demoPieceCosts); // 이번 환생 조각 가격
+        long crystalCost = CurrentCost(this.crystalCost, demoCrystalCosts); // 이번 환생 결정 가격
         long pieces = CurrencyManager.Instance != null ? CurrencyManager.Instance.GetPieces() : 0; // 가진 조각
         long crystals = CurrencyManager.Instance != null ? CurrencyManager.Instance.GetCrystals() : 0; // 가진 결정
         string piecesText = Line(Loc.T("{0} 조각", NumberFormatUtil.Format(pieceCost)), pieces >= pieceCost); // 조각 가격
@@ -92,7 +96,7 @@ public class RebirthNodeUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         return new UpgradeTooltip.Content
         {
             title = Loc.T("환생"),
-            description = GameSettings.IsDemo ? Loc.T("데모 버전에서는 환생을 지원하지 않아요.") : Loc.T("환생 시 별조각 +{0}", NumberFormatUtil.Format(StarShardReward())),
+            description = Loc.T("환생 시 별조각 +{0}", NumberFormatUtil.Format(StarShardReward())),
             price = $"{piecesText} + {crystalsText}",
         };
     }
@@ -121,30 +125,35 @@ public class RebirthNodeUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         return System.Math.Max(starShardReward, nth + bonus);
     }
 
-    // 환생할 때마다 costGrowth배 (long 넘치지 않게 막음)
-    private long CurrentCost(long baseCost) =>
-        (long)System.Math.Min(baseCost * System.Math.Pow(costGrowth, GameStats.Rebirths), long.MaxValue / 2);
+    // 환생할 때마다 costGrowth배 (long 넘치지 않게 막음). 데모는 가격표대로, 표가 끝나면 마지막 값에서 costGrowth배씩
+    private long CurrentCost(long baseCost, long[] demoCosts)
+    {
+        long nth = GameStats.Rebirths; // 지금까지 환생한 수
+        if (GameSettings.IsDemo && demoCosts != null && demoCosts.Length > 0)
+        {
+            int last = demoCosts.Length - 1; // 표의 마지막 칸
+            return (long)System.Math.Min(demoCosts[System.Math.Min(nth, last)] * System.Math.Pow(costGrowth, System.Math.Max(0, nth - last)), long.MaxValue / 2);
+        }
+        return (long)System.Math.Min(baseCost * System.Math.Pow(costGrowth, nth), long.MaxValue / 2);
+    }
 
     private bool IsReady()
     {
         CurrencyManager currency = CurrencyManager.Instance;
-        return currency != null && currency.GetPieces() >= CurrentCost(pieceCost) && currency.GetCrystals() >= CurrentCost(crystalCost);
+        return currency != null && currency.GetPieces() >= CurrentCost(pieceCost, demoPieceCosts) && currency.GetCrystals() >= CurrentCost(crystalCost, demoCrystalCosts);
     }
 
     private void HandleClicked()
     {
         if (_busy) return;
-        var cost = new[] { new PieceCost(CurrentCost(pieceCost)), new PieceCost(CurrentCost(crystalCost), true) }; // 이번 환생 비용
-        if (!IsReady() || (!GameSettings.IsDemo && !CurrencyManager.Instance.TrySpendPieces(cost))) // 데모는 조건만 보고 돈은 안 씀
+        var cost = new[] { new PieceCost(CurrentCost(pieceCost, demoPieceCosts)), new PieceCost(CurrentCost(crystalCost, demoCrystalCosts), true) }; // 이번 환생 비용
+        if (!IsReady() || !CurrencyManager.Instance.TrySpendPieces(cost))
         {
             UpgradeTooltip.Instance?.PlayShake(); // 일반 노드처럼 못 사면 툴팁이 흔들림
             return;
         }
-        if (!GameSettings.IsDemo) // 데모는 소용돌이만 보여주고 별조각/환생 횟수는 그대로
-        {
-            CurrencyManager.Instance.AddStarShards(StarShardReward());
-            GameStats.Rebirths++;
-        }
+        CurrencyManager.Instance.AddStarShards(StarShardReward());
+        GameStats.Rebirths++;
         _hovered = false;
         UpgradeTooltip.Instance?.Hide();
         StartCoroutine(VortexRoutine());
@@ -256,15 +265,9 @@ public class RebirthNodeUI : MonoBehaviour, IPointerEnterHandler, IPointerExitHa
         FinishRebirth(true);
     }
 
-    // 소용돌이 끝 (또는 도중에 트리가 닫힘): 데모는 감사창, 풀버전은 리셋
+    // 소용돌이 끝 (또는 도중에 트리가 닫힘): 리셋
     private static void FinishRebirth(bool openRebirthTree)
     {
-        if (GameSettings.IsDemo)
-        {
-            SaveManager.Instance?.SaveNow();
-            SidePanelUI.ShowDemoComplete(0f, true); // 데모는 환생 대신 감사창 (환생 미지원 안내 포함)
-            return;
-        }
         PerformReset();
         if (openRebirthTree) SidePanelUI.OpenRebirthTree(); // 바로 별조각을 쓸 수 있게
     }

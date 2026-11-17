@@ -152,10 +152,12 @@ public class Click : MonoBehaviour
 
         bool starterCrystal = dropOnFloor && CurrencyManager.Instance.TakeStarterCrystal();
         bool pityCrystal = CurrencyManager.Instance.CountKillForPity();
-        if (UpgradeManager.Instance != null && (starterCrystal || pityCrystal || Random.value < UpgradeManager.Instance.CrystalDropChance))
+        bool tutorialCrystal = TutorialGuideUI.TutorialCrystalDue(); // 빗자루 퀘스트: 10번 안에 결정 2개 확정
+        if (UpgradeManager.Instance != null && (starterCrystal || pityCrystal || tutorialCrystal || Random.value < UpgradeManager.Instance.CrystalDropChance))
         {
             CurrencyManager.Instance.ResetCrystalPity();
             long crystals = UpgradeManager.Instance.CrystalDropAmountIn(zone);
+            TutorialGuideUI.CrystalDropped(crystals);
             if (dropOnFloor)
                 DebrisPool.Instance.DropCrystal(transform.position, crystals, zone);
             else
@@ -407,7 +409,8 @@ public class Click : MonoBehaviour
         if (Mouse.current == null)
             return;
 
-        bool pressed = Mouse.current.leftButton.wasPressedThisFrame;
+        bool pressed = Mouse.current.leftButton.wasPressedThisFrame
+            || (Mouse.current.rightButton.wasPressedThisFrame && UpgradeManager.Instance != null && UpgradeManager.Instance.RightClickIsUnlocked); // 우클릭 노드 사면 우클릭도 침
 
         // 지형은 직접 눌러야만 맞음
         _hoverHitCooldown -= Time.deltaTime;

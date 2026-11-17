@@ -16,29 +16,56 @@ public class TutorialGuideUI : MonoBehaviour
     public static void Loaded(int step, int version, long pendingReward)
     {
         const int oldFinished = 10; // 버전 1의 끝 번호
-        Step = version == Version ? step : step >= oldFinished ? Finished : 0;
-        PendingReward = version == Version ? pendingReward : 0;
+        if (version == Version) Step = step;
+        else if (version == 2) Step = step > StepUpgrade ? step + 1 : step; // 버전 2: 카메라 조작 단계가 끼어든 만큼 한 칸씩 뒤로
+        else Step = step >= oldFinished ? Finished : 0;
+        PendingReward = version == Version || version == 2 ? pendingReward : 0;
         _skipRewardsOnce = true;
     }
 
-    // 튜토리얼 첫 단계(첫 강화 / 커서 줍기)에선 그 노드 말고는 못 삼
+    // 튜토리얼 첫 단계(첫 강화 / 카메라 / 커서 줍기)에선 그 노드 말고는 못 삼. 커서 줍기는 결정을 얻은 뒤부터 (그 전엔 퀘스트도 안 보임)
     public static bool IsBlocked(string nodeId) =>
-        ForceFirstSteps && ((Step == StepUpgrade && nodeId != UpgradeManager.FirstNodeId) || (Step == StepCrystal && nodeId != CursorNodeId));
+        ForceFirstSteps && ((Step == StepUpgrade && nodeId != UpgradeManager.FirstNodeId) || Step == StepCamera
+            || (Step == StepCrystal && CrystalReady() && nodeId != CursorNodeId));
 
-    public const int Version = 2; // 단계 구성 번호 (세이브에 같이 저장, 다르면 Loaded에서 단계를 다시 맞춤)
+    // 빗자루 퀘스트 동안 오브젝트를 부순 수 / 그동안 나온 결정 (5번째까지 1개, 10번째까지 2개 확정)
+    private static int _broomKills; // 부순 수
+    private static long _broomCrystals; // 나온 결정 수
+    private const int BroomCrystalKills = 10; // 이 안에
+    private const long BroomCrystalCount = 2; // 이만큼 확정
+
+    // 오브젝트를 부술 때마다 부름. 빗자루 퀘스트인데 지금까지 나온 결정이 모자라면 true (이번에 결정 확정)
+    public static bool TutorialCrystalDue()
+    {
+        if (Step != StepBroom) return false;
+        _broomKills++;
+        long need = BroomCrystalCount * Mathf.Min(_broomKills, BroomCrystalKills) / BroomCrystalKills; // 지금까지 나왔어야 할 수
+        return _broomCrystals < need;
+    }
+
+    public static void CrystalDropped(long amount)
+    {
+        if (Step == StepBroom) _broomCrystals += amount;
+    }
+
+    // 결정을 얻은 적 있음 (결정 퀘스트는 그 뒤에 보임)
+    private static bool CrystalReady() => CurrencyManager.Instance != null && (CurrencyManager.Instance.EverHadCrystal || CurrencyManager.Instance.GetCrystals() > 0);
+
+    public const int Version = 3; // 단계 구성 번호 (세이브에 같이 저장, 다르면 Loaded에서 단계를 다시 맞춤)
 
     // --- 되돌리기 스위치: false로 바꾸면 그 기능만 예전처럼 ---
     public static readonly bool ForceFirstSteps = true; // 첫 강화 / 커서 줍기 단계에선 그 노드만 살 수 있음
     public static readonly bool GuideInTree = true; // 업그레이드 창에서 할 노드 위에 화살표 (살 수 있을 때만)
     public static readonly bool PointAtButtons = true; // 눌러야 할 버튼(업그레이드 / 무기 / 보스 도전 / 다음 맵)에 화살표 (살 수 있을 때만)
-    public static readonly bool CardInTopBar = true; // 카드를 위쪽 줄(조각 상자와 버튼 사이)에 (false = 왼쪽 위 조각 상자 아래, 오브젝트를 가릴 수 있음)
+    public static readonly bool CardInTopBar = false; // 카드를 위쪽 줄(조각 상자와 버튼 사이)에 (false = 왼쪽 위 조각 상자 아래, 보스 도전 버튼은 카드 아래로)
 
     public static readonly Dictionary<string, VisualElement> Targets = new Dictionary<string, VisualElement>(); // 화살표가 가리킬 버튼들 (각 UI가 등록)
     public static readonly Color BlockedTint = new Color(0.35f, 0.35f, 0.35f, 1f); // 잠긴 노드 색 (어둡게)
 
     private const float Left = 23f; // (CardInTopBar 끌 때) 조각 상자 / 보스 도전 버튼과 같은 왼쪽
     private const float Top = 172f; // (CardInTopBar 끌 때) 조각 표시 아래
-    private const float BelowButton = 142f + 80f + 12f; // (CardInTopBar 끌 때) 보스 도전 버튼이 떠 있으면 그 아래
+    private const float CardGap = 12f; // (CardInTopBar 끌 때) 조각 상자와 카드 사이 틈
+    public static float CardBottom { get; private set; } // 카드 아래 끝 (화면 px, 0 = 카드 안 보임) - 보스 도전 버튼이 그 아래로 감
     private const float BarLeft = 380f; // 위쪽 줄: 조각 상자 오른쪽 옆
     private const float BarTop = 20f; // 위쪽 줄: 조각 상자 / 버튼과 같은 높이
     private const float BarGap = 16f; // 위쪽 줄: 카드와 업그레이드 버튼 사이 틈
@@ -50,18 +77,19 @@ public class TutorialGuideUI : MonoBehaviour
     private const int StepBreakEgg = 0; // 달걀 부수기
     private const int StepPick = 1; // 조각 줍기
     private const int StepUpgrade = 2; // 달걀 드랍량 강화 (첫 업그레이드)
-    private const int StepCrystal = 3; // 결정으로 커서 줍기 해금
-    private const int StepFist = 4; // 맨손 데미지 강화
-    private const int StepApple = 5; // 사과 해금
-    private const int StepBroom = 6; // 결정으로 빗자루(자동 줍기) 해금
-    private const int StepButter = 7; // 버터 해금
-    private const int StepBread = 8; // 식빵 해금
-    private const int StepWeapon = 9; // 무기 창에서 프라이팬 사기
-    private const int StepDeskUnlock = 10; // 책상 해금
-    private const int StepDesk = 11; // 보스 도전으로 책상 부수기 (맵2 해금)
-    private const int StepNextMap = 12; // 맵2로 이동
-    private const int StepFinal = 13; // 새 맵 보상 안내
-    public const int Finished = 14; // 끝
+    private const int StepCamera = 3; // 업그레이드 창에서 끌어서 옮기고 휠로 확대 / 축소
+    private const int StepCrystal = 4; // 결정으로 커서 줍기 해금
+    private const int StepFist = 5; // 맨손 데미지 강화
+    private const int StepApple = 6; // 사과 해금
+    private const int StepBroom = 7; // 결정으로 빗자루(자동 줍기) 해금
+    private const int StepButter = 8; // 버터 해금
+    private const int StepBread = 9; // 식빵 해금
+    private const int StepWeapon = 10; // 무기 창에서 프라이팬 사기
+    private const int StepDeskUnlock = 11; // 책상 해금
+    private const int StepDesk = 12; // 보스 도전으로 책상 부수기 (맵2 해금)
+    private const int StepNextMap = 13; // 맵2로 이동
+    private const int StepFinal = 14; // 새 맵 보상 안내
+    public const int Finished = 15; // 끝
 
     private const string CursorNodeId = "164_커서_줍기_해금"; // 커서 줍기 노드
     private const string FistNodeId = "1_맨손_데미지_강화"; // 맨손 데미지 노드
@@ -72,6 +100,7 @@ public class TutorialGuideUI : MonoBehaviour
         "달걀을 클릭해 부수세요",
         "떨어진 조각을 주우세요",
         "조각 {0}개로 달걀 드랍량을 강화하세요",
+        null, // 카메라 퀘스트는 CameraText()로 세 줄
         "결정으로 커서 줍기를 해금하세요",
         "맨손 데미지를 강화하세요",
         "사과를 해금하세요",
@@ -88,18 +117,37 @@ public class TutorialGuideUI : MonoBehaviour
     // 단계별 업그레이드 트리 노드 (없으면 null) - 노드 이름 또는 "unlock:오브젝트 번호"
     private static readonly string[] TreeTargets =
     {
-        null, null, UpgradeManager.FirstNodeId, CursorNodeId, FistNodeId, "unlock:1", BroomNodeId, "unlock:2", "unlock:3", null, "unlock:4", null, null, null,
+        null, null, UpgradeManager.FirstNodeId, null, CursorNodeId, FistNodeId, "unlock:1", BroomNodeId, "unlock:2", "unlock:3", null, "unlock:4", null, null, null,
     };
 
     // 단계별 눌러야 할 버튼 (Targets 키, 없으면 null). 트리 노드 단계는 "upgrade"
     private static readonly string[] ButtonTargets =
     {
-        null, null, "upgrade", "upgrade", "upgrade", "upgrade", "upgrade", "upgrade", "upgrade", "weapon", "upgrade", "boss", "next", null,
+        null, null, "upgrade", "upgrade", "upgrade", "upgrade", "upgrade", "upgrade", "upgrade", "upgrade", "weapon", "upgrade", "boss", "next", null,
     };
 
     // 단계를 끝내면 주는 조각 = 다음에 살 것(오브젝트 해금 가격) x RewardRatio (-1 = 보상 없음)
     // 달걀/줍기는 보상을 주면 줍기 단계가 저절로 끝나서 없음. 책상 해금 뒤엔 바로 보스라 없음
-    private static readonly int[] RewardObject = { -1, -1, 1, 1, 1, 2, 2, 3, 3, 4, -1, 6, 6 }; // 사과 1 / 버터 2 / 식빵 3 (프라이팬과 같은 가격) / 책상 4 / 자전거 6
+    private static readonly int[] RewardObject = { -1, -1, 1, -1, 1, 1, 2, -1, 3, -1, 4, -1, 6, 6 }; // 사과 1 / 버터 2 / 식빵 3 (프라이팬과 같은 가격) / 책상 4 / 자전거 6
+    // 조각 대신 주는 능력치 (끝낸 단계 것만 계속 적용 - 단계로 계산해서 따로 저장 안 함)
+    private static readonly int[] RewardDamage = { 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0 }; // 데미지 +n (빗자루 +1 / 책상 해금 +2), 장착 무기 등급 배율 곱함
+    private static readonly int[] RewardPieceGain = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 10, 0, 0, 0, 0 }; // 조각 획득 +n% (식빵 +10%)
+    public static int BonusDamage => SumDone(RewardDamage); // 끝낸 단계의 데미지 보상 합
+    public static int BonusPieceGainPercent => SumDone(RewardPieceGain); // 끝낸 단계의 조각 획득 보상 합 (%)
+    private static int SumDone(int[] rewards)
+    {
+        int total = 0; // 합
+        for (int i = 0; i < rewards.Length && i < Step; i++) total += rewards[i];
+        return total;
+    }
+    // 능력치 보상 글 (없으면 "")
+    private static string StatRewardText(int step)
+    {
+        if (step < 0 || step >= RewardDamage.Length) return "";
+        if (RewardDamage[step] > 0) return Loc.T("데미지 +{0}", RewardDamage[step]);
+        if (RewardPieceGain[step] > 0) return Loc.T("조각 획득 +{0}%", RewardPieceGain[step]);
+        return "";
+    }
     private const double RewardRatio = 0.3; // 해금 가격의 30%
     private const int RewardFontSize = 22; // px - 보상 줄
 
@@ -117,6 +165,7 @@ public class TutorialGuideUI : MonoBehaviour
     private Label _label; // 안내 글
     private Label _reward; // 보상 줄 ("+N조각")
     private VisualElement _strike; // 완료 줄 (안내 글 위를 가로지름)
+    private static bool _cameraChecksReset; // 카메라 퀘스트 확인을 이번 실행에서 초기화했음
     private bool _multiLine; // 완료한 퀘스트 글이 두 줄 이상 (취소선을 글자에 직접)
     private float _doneElapsed = -1f; // 완료 연출 진행 시간 (-1 = 연출 중 아님)
     private Texture2D _scrollTexture; // 두루마리 그림
@@ -251,6 +300,8 @@ public class TutorialGuideUI : MonoBehaviour
     void Update()
     {
         if (_panel == null) return;
+        CardBottom = !CardInTopBar && _panel.resolvedStyle.display == DisplayStyle.Flex && _panel.parent != null && _panel.layout.height > 0f
+            ? _panel.parent.LocalToWorld(_panel.layout).yMax : 0f; // 지난 프레임에 보이던 카드 (커졌다 작아지는 연출은 빼고 잼)
         Advance();
         if (Step == StepFinal && _shownStep == StepFinal) // 마지막 안내가 실제로 뜬 뒤부터 셈
         {
@@ -259,6 +310,8 @@ public class TutorialGuideUI : MonoBehaviour
         }
 
         bool windowOpen = UIPointerGuard.PopupOpen || Time.timeScale == 0f; // 업그레이드/설정/도감 등 창이 열려 있음 (보스 도전 버튼과 같은 기준)
+        bool treeOpen = UpgradeTreeUI.Instance != null && UpgradeTreeUI.Current == UpgradeTreeUI.Instance; // 업그레이드 창 (여기선 카드를 보여줌)
+        bool cardHidden = windowOpen && !treeOpen; // 설정 / 도감 / 무기 / 환생 창에선 카드 숨김
         UpdateGuide(windowOpen);
 
         // 완료 연출: 보이던 퀘스트에 줄을 긋고 보상 조각을 넣은 뒤 사라지고, 잠깐 쉬고 다음 퀘스트
@@ -266,7 +319,7 @@ public class TutorialGuideUI : MonoBehaviour
         if (_doneElapsed < 0f && _shownStep >= 0 && _shownStep < StepFinal && Step != _shownStep) _doneElapsed = 0f;
         if (_doneElapsed >= 0f)
         {
-            if (windowOpen || ZoneBreaker.ActiveBoss != null) { _panel.style.display = DisplayStyle.None; return; } // 보스전 중엔 이 화면이 숨겨져 있음
+            if (cardHidden || ZoneBreaker.ActiveBoss != null) { _panel.style.display = DisplayStyle.None; return; } // 보스전 중엔 이 화면이 숨겨져 있음
             if (_doneElapsed == 0f && PendingReward > 0) // 줄 긋기 시작할 때 보상 지급 - 조각 표시가 올라가는 게 보임
             {
                 CurrencyManager.Instance?.AddPieces(PendingReward);
@@ -300,36 +353,53 @@ public class TutorialGuideUI : MonoBehaviour
             _label.style.color = PixelStyle.Text.linear; // 다음 퀘스트는 원래 색
             _strike.style.backgroundColor = PixelStyle.Text.linear;
         }
-        if (PendingReward > 0 && !windowOpen) // 연출 없이 남은 보상 (불러온 세이브 등)
+        if (PendingReward > 0 && !cardHidden) // 연출 없이 남은 보상 (불러온 세이브 등)
         {
             CurrencyManager.Instance?.AddPieces(PendingReward);
             PendingReward = 0;
         }
 
-        bool show = Step >= 0 && Step < Finished && !windowOpen;
-        _panel.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+        bool show = Step >= 0 && Step < Finished && !cardHidden;
+        bool waiting = Step == StepCrystal && !CrystalReady(); // 결정을 아직 못 얻음: 오브젝트를 부수다 결정이 나오면 카드가 뜸
+        _panel.style.display = show && !waiting ? DisplayStyle.Flex : DisplayStyle.None;
         if (!show) return;
+        if (waiting) _popElapsed = 0f; // 결정을 얻어 카드가 뜰 때 커졌다 돌아오는 연출
 
         PlaceCard();
         _popElapsed += Time.unscaledDeltaTime;
         float pop = Mathf.Lerp(PopScale, 1f, Mathf.Clamp01(_popElapsed / PopSeconds)); // 새 글이 뜰 때 살짝 커졌다 돌아옴
         _panel.style.scale = new Scale(new Vector3(pop, pop, 1f));
 
-        if (_shownStep == Step) return;
+        if (_shownStep == Step)
+        {
+            if (Step == StepCamera && _label.text != CameraText()) _label.text = CameraText(); // 하나 할 때마다 그 줄에 완료선
+            return;
+        }
         if (_shownStep >= 0) _popElapsed = 0f; // 처음 뜰 때(불러오기 / 언어 바꿈)는 연출 없음
         _shownStep = Step;
         _icon.style.display = Step == StepFinal ? DisplayStyle.None : DisplayStyle.Flex; // 마지막 안내는 할 일이 아니라 아이콘 없음
-        _label.text = Step == StepUpgrade ? Loc.T(Texts[Step], NumberFormatUtil.Format(NextCost(UpgradeManager.FirstNodeId))) : Loc.T(Texts[Step]);
+        if (Step == StepCamera && !_cameraChecksReset) { UpgradeTreeUI.ResetCameraChecks(); _cameraChecksReset = true; } // 퀘스트가 처음 뜰 때부터 셈
+        _label.text = Step == StepUpgrade ? Loc.T(Texts[Step], NumberFormatUtil.Format(NextCost(UpgradeManager.FirstNodeId)))
+            : Step == StepCamera ? CameraText() : Loc.T(Texts[Step]);
         long reward = Reward(Step); // 이 단계 보상
-        _reward.text = reward > 0 ? Loc.T("+{0}조각", NumberFormatUtil.Format(reward)) : "";
-        _reward.style.display = reward > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+        _reward.text = reward > 0 ? Loc.T("+{0}조각", NumberFormatUtil.Format(reward)) : StatRewardText(Step);
+        _reward.style.display = _reward.text.Length > 0 ? DisplayStyle.Flex : DisplayStyle.None;
     }
 
     private void PlaceCard()
     {
-        if (!CardInTopBar) { _panel.style.top = BossChallengeUI.ChallengeShown ? BelowButton : Top; return; } // 왼쪽 위일 땐 보스 도전 버튼 아래로 비킴
-        if (Targets.TryGetValue("upgrade", out VisualElement upgrade) && upgrade.panel != null && upgrade.worldBound.width > 0f)
-            _panel.style.maxWidth = Mathf.Max(200f, upgrade.worldBound.xMin - BarLeft - BarGap); // 업그레이드 버튼을 넘지 않게
+        if (!CardInTopBar) // 조각 상자 바로 아래 (결정 / 별조각 줄이 생기면 상자가 길어져서 매번 잼)
+        {
+            float top = Top; // 카드 위쪽
+            if (Targets.TryGetValue("pieces", out VisualElement pieces) && pieces.panel != null && pieces.parent != null && pieces.layout.height > 0f)
+                top = pieces.parent.LocalToWorld(pieces.layout).yMax + CardGap;
+            _panel.style.top = top;
+            return;
+        }
+        if (UIPointerGuard.PopupOpen || Time.timeScale == 0f) return; // 창이 열려 버튼이 숨으면 자리를 못 잼 - 창 밖에서 잰 너비 그대로
+        if (!Targets.TryGetValue("upgrade", out VisualElement upgrade) || upgrade.panel == null || upgrade.parent == null) return;
+        Rect bound = upgrade.parent.LocalToWorld(upgrade.layout); // 버튼 자리 (누를 때 커졌다 작아지는 연출은 빼고 잼 - 넣으면 카드 너비가 같이 흔들려 줄바꿈이 바뀜)
+        if (bound.width > 0f) _panel.style.maxWidth = Mathf.Max(200f, bound.xMin - BarLeft - BarGap); // 업그레이드 버튼을 넘지 않게
     }
 
     // 지금 할 일을 화면에서 가리킴: 창 밖에선 눌러야 할 버튼, 업그레이드 창 안에선 할 노드. 둘 다 살 수 있을 때만 (돈이 모이면 뜸)
@@ -437,6 +507,7 @@ public class TutorialGuideUI : MonoBehaviour
             case StepBreakEgg: return GameStats.ObjectsBroken > 0;
             case StepPick: return CurrencyManager.Instance != null && CurrencyManager.Instance.TotalPieces > 0;
             case StepUpgrade: return UpgradeManager.Instance != null && UpgradeManager.Instance.FirstUpgradeBought;
+            case StepCamera: return UpgradeTreeUI.Panned && UpgradeTreeUI.ZoomedIn && UpgradeTreeUI.ZoomedOut;
             case StepCrystal: return UpgradeManager.Instance != null && UpgradeManager.Instance.HoverPickupIsUnlocked;
             case StepFist: return UpgradeManager.Instance != null && UpgradeManager.Instance.GetLevel(FistNodeId) >= 1;
             case StepApple: return objects.IsUnlocked(1);
@@ -449,6 +520,14 @@ public class TutorialGuideUI : MonoBehaviour
             case StepNextMap: return zones.CurrentZone >= 1;
             default: return false;
         }
+    }
+
+    // 카메라 퀘스트 글: 끌기 / 확대 / 축소 세 줄, 한 것은 초록 취소선
+    private static string CameraText()
+    {
+        string clear = "#" + ColorUtility.ToHtmlStringRGB(ClearColor); // 완료 줄 색
+        string Line(string key, bool done) => done ? "<color=" + clear + "><s>" + Loc.T(key) + "</s></color>" : Loc.T(key);
+        return Loc.T("업그레이드 창에서 화면을 움직여 보세요") + "\n" + Line("마우스를 누른 채 끌어서 화면 옮기기", UpgradeTreeUI.Panned) + "\n" + Line("휠로 확대하기", UpgradeTreeUI.ZoomedIn) + "\n" + Line("휠로 축소하기", UpgradeTreeUI.ZoomedOut);
     }
 
     private static long NextCost(string nodeId)

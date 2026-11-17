@@ -27,6 +27,11 @@ public class UpgradeTreeUI : MonoBehaviour, IScrollHandler, IPointerEnterHandler
     private ObjectEconomyNodeUI[] _economyNodes = System.Array.Empty<ObjectEconomyNodeUI>();
 
     private float _zoomTarget = 1f;
+    public static bool Panned { get; private set; } // 튜토리얼용: 유저가 판을 끌어서 옮긴 적 있음 (이번 실행)
+    public static bool ZoomedIn { get; private set; } // 튜토리얼용: 휠로 확대한 적 있음
+    public static bool ZoomedOut { get; private set; } // 튜토리얼용: 휠로 축소한 적 있음
+    private Vector2 _lastContentPos; // 지난 프레임 판 위치 (끌어서 옮겼는지 보려고)
+    public static void ResetCameraChecks() => Panned = ZoomedIn = ZoomedOut = false; // 튜토리얼 퀘스트가 뜬 뒤 한 것만 셈
     private Vector2 _zoomFocalPoint;
 
     // 카메라 초기화 때 정중앙에 올 노드
@@ -49,31 +54,6 @@ public class UpgradeTreeUI : MonoBehaviour, IScrollHandler, IPointerEnterHandler
         CacheNodes();
         StyleButton("CloseButton", PixelStyle.Pink, "X", new Vector2(84f, 84f));
         StyleButton("CameraResetButton", PixelStyle.Mint, "카메라 리셋", new Vector2(300f, 90f));
-        if (CrystalShortcut && !isRebirthTree) AddCrystalShortcut();
-    }
-
-    public static readonly bool CrystalShortcut = true; // "결정 트리" 바로가기 버튼 (되돌리려면 false)
-    private const string CrystalRootNodeId = "164_커서_줍기_해금"; // 결정 노드들이 시작하는 노드
-
-    // 결정 노드가 어디 있는지 몰라서 못 사는 일이 없게: 누르면 카메라가 결정 노드 쪽으로 감
-    private void AddCrystalShortcut()
-    {
-        UnityEngine.UI.Button reset = System.Array.Find(GetComponentsInChildren<UnityEngine.UI.Button>(true), b => b.name == "CameraResetButton"); // 복제할 버튼
-        if (reset == null) return;
-        UnityEngine.UI.Button button = Instantiate(reset, reset.transform.parent); // 같은 모양으로 하나 더
-        button.name = "CrystalTreeButton";
-        var rect = (RectTransform)button.transform; // 새 버튼 자리
-        var resetRect = (RectTransform)reset.transform; // 원래 버튼 자리
-        float step = resetRect.sizeDelta.y + 12f; // 버튼 높이 + 틈
-        rect.anchoredPosition = resetRect.anchoredPosition + new Vector2(0f, resetRect.anchorMin.y > 0.5f ? -step : step); // 위쪽에 붙어 있으면 아래로, 아니면 위로
-        for (int i = 0; i < button.onClick.GetPersistentEventCount(); i++) // 복제된 카메라 리셋 연결을 끔
-            button.onClick.SetPersistentListenerState(i, UnityEngine.Events.UnityEventCallState.Off);
-        button.onClick.AddListener(() =>
-        {
-            RectTransform node = FindNode(CrystalRootNodeId); // 결정 트리 첫 노드
-            if (node != null && node.gameObject.activeInHierarchy) PlayGateReveal(node, null, GuideZoom);
-        });
-        StyleButton("CrystalTreeButton", PixelStyle.Butter, "결정 트리", new Vector2(300f, 90f));
     }
 
     private void StyleButton(string buttonName, PixelStyle.Tone tone, string label, Vector2 size)
@@ -236,12 +216,17 @@ public class UpgradeTreeUI : MonoBehaviour, IScrollHandler, IPointerEnterHandler
         // OS마다 틱 크기가 달라 부호만 씀
         float dir = Mathf.Sign(eventData.scrollDelta.y);
         float factor = dir > 0f ? (1f + zoomStep) : (1f / (1f + zoomStep));
+        if (dir > 0f) ZoomedIn = true; else ZoomedOut = true;
         _zoomTarget = Mathf.Clamp(_zoomTarget * factor, Mathf.Min(minZoom, FitAllZoom()), maxZoom);
     }
 
     void Update()
     {
         if (content == null) return;
+        var mouse = UnityEngine.InputSystem.Mouse.current; // 마우스 (끌기 확인용)
+        if (mouse != null && mouse.leftButton.isPressed && mouse.delta.ReadValue().sqrMagnitude > 0f && !_revealRunning
+            && (content.anchoredPosition - _lastContentPos).sqrMagnitude > 4f) Panned = true; // 누른 채 마우스를 움직였고 판도 따라 움직임 = 끌어서 옮김 (창 열 때 판 위치 초기화는 제외)
+        _lastContentPos = content.anchoredPosition;
 
         float currentScale = content.localScale.x;
         if (Mathf.Approximately(currentScale, _zoomTarget)) return;
@@ -274,7 +259,6 @@ public class UpgradeTreeUI : MonoBehaviour, IScrollHandler, IPointerEnterHandler
         return node != null ? node.Rect : null;
     }
 
-    public const float GuideZoom = 0.5f; // 튜토리얼 / 결정 트리 바로가기로 노드를 보여줄 때 배율 (주변 노드도 보이게)
 
     public void PlayGateReveal(RectTransform node, System.Action onArrive, float revealZoom = 1.1f)
     {

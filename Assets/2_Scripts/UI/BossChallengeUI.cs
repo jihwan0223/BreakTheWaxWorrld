@@ -6,6 +6,8 @@ public class BossChallengeUI : MonoBehaviour
 {
     private const float Left = 20f;
     private const float Top = 142f; // 조각 표시(위 20 + 높이 110) 바로 아래
+    private const float BelowCardGap = 12f; // 튜토리얼 카드와 버튼 사이 틈
+    private static float CurrentTop => TutorialGuideUI.CardBottom > 0f ? TutorialGuideUI.CardBottom + BelowCardGap : Top; // 튜토리얼 카드가 떠 있으면 그 아래, 없으면 원래 자리
     private const float SlowScale = 0.3f;
     private const float SlowSeconds = 1f; // 실제 시간(초)
 
@@ -278,6 +280,7 @@ public class BossChallengeUI : MonoBehaviour
             float pulse = 1f + Mathf.Sin(Time.unscaledTime * 4f) * 0.04f;
             float scale = _introElapsed >= 0f ? UpdateIntro() : 1f; // 등장 연출 크기
             _challengeButton.style.scale = new Scale(new Vector3(pulse * scale, pulse * scale, 1f));
+            if (_introElapsed < 0f) Place(_challengeButton); // 카드가 뜨고 사라질 때 따라 움직임
         }
         else if (_introElapsed >= 0f)
         {
@@ -388,7 +391,7 @@ public class BossChallengeUI : MonoBehaviour
         if (t < IntroMoveSeconds)
         {
             float k = Mathf.SmoothStep(0f, 1f, t / IntroMoveSeconds); // 이동 진행도
-            SetPosition(Vector2.Lerp(center, new Vector2(Left, Top), k));
+            SetPosition(Vector2.Lerp(center, new Vector2(Left, CurrentTop), k));
             return Mathf.Lerp(IntroScale, 1f, k);
         }
         _introElapsed = -1f;
@@ -406,7 +409,7 @@ public class BossChallengeUI : MonoBehaviour
     {
         element.style.position = Position.Absolute;
         element.style.left = Left;
-        element.style.top = Top;
+        element.style.top = CurrentTop;
     }
 
     private static void GuardPointer(VisualElement element)

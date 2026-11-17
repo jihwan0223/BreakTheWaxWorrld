@@ -116,6 +116,7 @@ public class PieceUI : MonoBehaviour
         _starLabel = AddRow(background, ShardTexture(StarShard), new Color(0.55f, 0.3f, 0.78f).linear, out _starRow);
 
         root.Add(background);
+        TutorialGuideUI.Targets["pieces"] = background; // 튜토리얼 카드가 상자 바로 아래에 붙게
     }
 
     private Label AddRow(VisualElement box, Texture2D iconTexture, Color color, out VisualElement row, string nameKey = null)

@@ -65,6 +65,7 @@ public class UpgradeManager : MonoBehaviour
         [InspectorName("환생: 자동클릭 데미지 2배")] RebirthAutoClickDamageDouble,
         [InspectorName("환생: 줍는 조각 증가 (+n)")] PickupBonusPieces, // 바닥 조각 1개 주울 때마다 +값 개
         [InspectorName("자동클릭 데미지 (+n)")] AutoClickDamageFlat, // +값, 장착 무기 티어 배율 곱함
+        [InspectorName("우클릭 타격 해금")] RightClickUnlock, // 우클릭으로도 오브젝트를 침
     }
 
     public enum LinkRouting
@@ -441,6 +442,7 @@ public class UpgradeManager : MonoBehaviour
             for (int L = 1; L <= level; L++)
                 total += node.ValueAtLevel(L);
         }
+        total += TutorialGuideUI.BonusDamage; // 튜토리얼 보상 (모든 무기)
         // 노드 값에 장착 무기 티어 배율을 곱함
         return ClampToInt((double)total * ObjectHealthCalculator.ScaleOfTier(equippedWeaponIndex + 1));
     }
@@ -500,7 +502,7 @@ public class UpgradeManager : MonoBehaviour
 
     public int AutoMineYieldBonus => Mathf.RoundToInt(SumEffect(UpgradeEffect.AutoMineYield));
 
-    public float PieceGainMultiplier() => 1f + SumEffect(UpgradeEffect.PieceGainGlobal) / 100f;
+    public float PieceGainMultiplier() => 1f + (SumEffect(UpgradeEffect.PieceGainGlobal) + TutorialGuideUI.BonusPieceGainPercent) / 100f; // 튜토리얼 보상 포함
 
     // 기본 보상의 value%, 최소 1개
     public static double ObjectPieceBonusPerLevel(long baseReward, float valuePercent) =>
@@ -550,6 +552,7 @@ public class UpgradeManager : MonoBehaviour
     public float CursorRadius => SumEffect(UpgradeEffect.CursorRange) + (HoverPickupIsUnlocked ? hoverPickupBaseRadius : 0f);
     public bool HoverClickIsUnlocked => AnyUnlocked(UpgradeEffect.HoverClickUnlock);
     public bool StatsIsUnlocked => AnyUnlocked(UpgradeEffect.StatsUnlock);
+    public bool RightClickIsUnlocked => AnyUnlocked(UpgradeEffect.RightClickUnlock); // 우클릭도 왼클릭처럼 침
     public bool WindowsKeepRunningIsUnlocked => AnyUnlocked(UpgradeEffect.WindowsKeepRunning); // 설정·도감·무기 창을 열어도 안 멈춤
     public float HoverClickIntervalSeconds => Mathf.Max(0.02f, hoverClickInterval); // 0 이하로 넣어도 매 프레임은 안 때리게
 
