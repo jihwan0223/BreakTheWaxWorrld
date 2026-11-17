@@ -7,7 +7,7 @@ public class WeaponManager : MonoBehaviour
     public static WeaponManager Instance { get; private set; }
 
     // 같은 티어 오브젝트를 4~8클릭에 부수도록 잡은 데미지 (다음 무기 = 이전 x2 + 4)
-    // 맵마다 2개: 책상 위 / 길거리 / 공사장 / 바다 / 우주
+    // 맵마다 2개: 책상 위 / 길거리 / 회사 앞 / 바다 / 우주
     private static readonly List<WeaponData> weapons = new List<WeaponData>
     {
         new WeaponData(1, "맨손", 1),

@@ -185,7 +185,7 @@ public class ObjectManager : MonoBehaviour
         return index >= 0 && ZoneManager.Instance != null && ZoneManager.Instance.IsZoneFirstObject(index + 1);
     }
 
-    private static readonly string[] zoneNames = { "책상 위", "길거리", "공사장", "바다", "우주" };
+    private static readonly string[] zoneNames = { "책상 위", "길거리", "회사 앞", "바다", "우주" };
 
     public static string ZoneNameOf(int index) => ZoneName(ZoneOfObject(index));
 

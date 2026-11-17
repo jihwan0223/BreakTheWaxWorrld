@@ -110,6 +110,31 @@ public class WaxCoating : MonoBehaviour
         (UpgradeManager.Instance != null && UpgradeManager.Instance.WaxIsUnlockedFor(ObjectIndex))
         || (System.Array.IndexOf(WaxOnUnlockTerrain, ObjectIndex) >= 0 && ObjectManager.Instance != null && ObjectManager.Instance.IsUnlocked(ObjectIndex));
 
+    private Sprite _dexSprite; // 도감 맵 그림용 안 깨진 왁스 그림
+    private Color32[] _dexPristine; // _dexSprite를 만든 안 깨진 픽셀 (바뀌면 다시 만듦)
+
+    // 도감 맵 그림용 왁스 그림 (덮여 있지 않으면 null). 깨져서 다시 생기는 중이어도 안 깨진 모습. 안 깨진 모습을 아직 못 그렸으면 지금 모습
+    public Sprite DexSprite
+    {
+        get
+        {
+            if (!Covers || _shape == null || _wax == null || _wax.sprite == null) return null;
+            if (_pristine == null) return _broken ? null : _wax.sprite; // 깨져서 다시 생기는 중이면 지금 모습은 없음
+            if (_dexSprite == null || _dexPristine != _pristine)
+            {
+                if (_dexSprite != null) { Destroy(_dexSprite.texture); Destroy(_dexSprite); }
+                var texture = new Texture2D(_shape.width, _shape.height, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp }; // 안 깨진 왁스 픽셀
+                texture.SetPixels32(_pristine);
+                texture.Apply();
+                _dexSprite = Sprite.Create(texture, new Rect(0, 0, _shape.width, _shape.height), _shape.pivot, _shape.pixelsPerUnit, 0, SpriteMeshType.FullRect);
+                _dexPristine = _pristine;
+            }
+            return _dexSprite;
+        }
+    }
+
+    public Transform WaxTransform => _wax.transform; // 왁스 그림 자리 (세로 배율 포함)
+
     public bool TryGetChipColor(out Color color)
     {
         color = _color;
@@ -164,6 +189,7 @@ public class WaxCoating : MonoBehaviour
         if (_shield != null && _shield.sprite != null) Destroy(_shield.sprite);
         if (_texture != null) Destroy(_texture);
         if (_wax != null && _wax.sprite != null) Destroy(_wax.sprite);
+        if (_dexSprite != null) { Destroy(_dexSprite.texture); Destroy(_dexSprite); }
         if (_crackTexture != null) Destroy(_crackTexture);
         if (_objectCracks != null && _objectCracks.sprite != null) Destroy(_objectCracks.sprite);
     }

@@ -15,6 +15,7 @@ public class ZoneManager : MonoBehaviour
     public int UnlockedMaxZone => _unlockedMaxZone;
     public int ZoneCount => zoneRoots == null ? 0 : GameSettings.IsDemo ? Mathf.Min(GameSettings.DemoZoneCount, zoneRoots.Length) : zoneRoots.Length; // 데모는 맵3까지
 
+    public GameObject ZoneRoot(int zone) => zoneRoots != null && zone >= 0 && zone < zoneRoots.Length ? zoneRoots[zone] : null; // 그 맵의 오브젝트들이 들어 있는 곳 (도감 맵 그림용)
     public bool CanGoPrev => _currentZone > 0;
     public bool CanGoNext => _currentZone < _unlockedMaxZone;
 

@@ -465,7 +465,8 @@ public partial class SidePanelUI : MonoBehaviour
         System.Action<int> onSelect,
         out System.Action refresh,
         System.Func<int, bool> isLocked = null,
-        System.Func<int, (string label, string value, Color color)[]> getInfoRows = null)
+        System.Func<int, (string label, string value, Color color)[]> getInfoRows = null,
+        System.Action<int, Image> decorate = null) // 그림 위에 더 그릴 것 (맵 탭: 해금한 오브젝트)
     {
         var content = new VisualElement();
         content.style.position = Position.Absolute;
@@ -546,7 +547,7 @@ public partial class SidePanelUI : MonoBehaviour
         content.Add(CreateCenterRow(prevButton, center, nextButton));
         content.Add(infoCard);
 
-        redraw = () => RefreshSelectorState(nameLabel, selectButton, equippedLabel, previewImage, infoCard, getName, getIcon, getEquippedIndex, getInfoRows, browse.index, isLocked);
+        redraw = () => RefreshSelectorState(nameLabel, selectButton, equippedLabel, previewImage, infoCard, getName, getIcon, getEquippedIndex, getInfoRows, browse.index, isLocked, decorate);
         refresh = redraw;
 
         return content;
@@ -818,12 +819,15 @@ public partial class SidePanelUI : MonoBehaviour
         System.Func<int> getEquippedIndex,
         System.Func<int, (string label, string value, Color color)[]> getInfoRows,
         int index,
-        System.Func<int, bool> isLocked = null)
+        System.Func<int, bool> isLocked = null,
+        System.Action<int, Image> decorate = null)
     {
         bool locked = isLocked != null && isLocked(index);
         nameLabel.text = locked ? "???" : getName(index);
         previewImage.sprite = getIcon(index);
         previewImage.tintColor = locked ? Color.black : Color.white;
+        previewImage.Clear(); // 지난번에 얹은 것 지움
+        if (!locked) decorate?.Invoke(index, previewImage);
 
         var rows = getInfoRows?.Invoke(index);
         infoCard.Clear();
@@ -936,7 +940,8 @@ public partial class SidePanelUI : MonoBehaviour
             _ => { },
             out _refreshMapDex,
             zone => ZoneManager.Instance != null && zone > ZoneManager.Instance.UnlockedMaxZone,
-            GetMapDexRows);
+            GetMapDexRows,
+            DrawMapObjects);
         _panel.Add(_mapDexContent);
 
         _dexTabRow = new VisualElement();
@@ -979,6 +984,71 @@ public partial class SidePanelUI : MonoBehaviour
             ("공격력", locked ? "???" : NumberFormatUtil.Format((long)weapons.GetWeaponAt(index).clickDamage + bonus), locked ? HiddenColor : Color.white),
             ("상태", weapons.EquippedIndex == index ? "장착 중" : locked ? "잠김" : "해금됨", locked ? BadColor : GoodColor),
         };
+    }
+
+    // 도감 맵 그림 위에 그 맵에서 해금한 오브젝트를 실제 자리대로 얹음 (해금할수록 하나씩 생김)
+    private void DrawMapObjects(int zone, Image mapImage)
+    {
+        GameObject root = ZoneManager.Instance != null ? ZoneManager.Instance.ZoneRoot(zone) : null; // 이 맵의 오브젝트들이 들어 있는 곳
+        Sprite mapSprite = mapImage.sprite; // 도감 맵 그림 (= 맵 배경 그림)
+        if (root == null || mapSprite == null || ObjectManager.Instance == null) return;
+
+        SpriteRenderer background = null; // 게임 안의 맵 배경
+        foreach (SpriteRenderer r in root.GetComponentsInChildren<SpriteRenderer>(true))
+            if (r.sprite == mapSprite) { background = r; break; }
+        if (background == null) return;
+        Rect world = WorldRect(background.transform, mapSprite); // 배경이 차지하는 월드 영역
+
+        // 그림이 600x600 칸에 비율 맞춰 들어간 자리
+        float boxSize = mapImage.style.width.value.value; // 칸 크기 (정사각형)
+        float aspect = mapSprite.rect.width / mapSprite.rect.height; // 그림 가로 / 세로
+        float shownW = aspect >= 1f ? boxSize : boxSize * aspect; // 화면에 보이는 그림 너비
+        float shownH = aspect >= 1f ? boxSize / aspect : boxSize; // 화면에 보이는 그림 높이
+        float offsetX = (boxSize - shownW) * 0.5f; // 칸 안 왼쪽 여백
+        float offsetY = (boxSize - shownH) * 0.5f; // 칸 안 위 여백
+        mapImage.style.overflow = Overflow.Hidden;
+
+        var placed = new List<(int order, int seq, Image image)>(); // 그릴 순서 (게임과 같은 앞뒤, 같으면 넣은 순서 - 왁스는 오브젝트 바로 위)
+        foreach (Click click in root.GetComponentsInChildren<Click>(true))
+        {
+            int index = click.ObjectIndex; // 이 오브젝트 번호
+            if (index < 0 || !ObjectManager.Instance.IsUnlocked(index)) continue;
+            if (!click.enabled) continue; // UnlockGate가 끈 것 (안 산 추가 배치분)
+            var renderer = click.GetComponent<SpriteRenderer>(); // 게임 안 그림
+            Sprite[] stages = ObjectManager.Instance.GetObjectAt(index).healthStages; // 체력 단계 그림 (0 = 멀쩡함)
+            Sprite sprite = stages != null && stages.Length > 0 && stages[0] != null ? stages[0] : renderer != null ? renderer.sprite : null; // 안 깨진 그림
+            if (sprite == null) continue;
+            Rect r = WorldRect(click.transform, sprite); // 오브젝트 월드 영역
+            int order = renderer != null ? renderer.sortingOrder : 0; // 게임 안 앞뒤
+            placed.Add((order, placed.Count, MapImage(sprite, r)));
+            var wax = click.GetComponent<WaxCoating>(); // 왁스가 덮여 있으면 그 위에
+            Sprite waxSprite = wax != null ? wax.DexSprite : null; // 안 깨진 왁스 그림
+            if (waxSprite != null) placed.Add((order, placed.Count, MapImage(waxSprite, WorldRect(wax.WaxTransform, waxSprite))));
+        }
+        placed.Sort((x, y) => x.order != y.order ? x.order.CompareTo(y.order) : x.seq.CompareTo(y.seq)); // 뒤에 있는 것부터
+        foreach (var (_, _, image) in placed) mapImage.Add(image);
+
+        // 월드 사각형을 도감 그림 위 자리로 옮긴 그림
+        Image MapImage(Sprite s, Rect r)
+        {
+            var image = new Image { sprite = s, scaleMode = ScaleMode.StretchToFill, pickingMode = PickingMode.Ignore }; // 맵 위 그림
+            image.style.position = Position.Absolute;
+            image.style.left = offsetX + (r.xMin - world.xMin) / world.width * shownW;
+            image.style.top = offsetY + (world.yMax - r.yMax) / world.height * shownH;
+            image.style.width = r.width / world.width * shownW;
+            image.style.height = r.height / world.height * shownH;
+            return image;
+        }
+    }
+
+    // 스프라이트가 월드에서 차지하는 사각형 (회전은 무시)
+    private static Rect WorldRect(Transform t, Sprite sprite)
+    {
+        Bounds b = sprite.bounds; // 스프라이트 자체 크기 (피벗 기준)
+        Vector3 scale = t.lossyScale; // 월드 배율
+        Vector3 center = t.position + Vector3.Scale(b.center, scale); // 월드 중심
+        Vector2 size = new Vector2(Mathf.Abs(b.size.x * scale.x), Mathf.Abs(b.size.y * scale.y)); // 월드 크기
+        return new Rect((Vector2)center - size * 0.5f, size);
     }
 
     private (string label, string value, Color color)[] GetMapDexRows(int zone)
