@@ -9,6 +9,11 @@ public partial class SidePanelUI
 
     private Button _statsButton;
     private VisualElement _statsPanel;
+    private VisualElement _statsGlass; // 통계 창 배경: 흐린 게임 화면 (오브젝트 부서지는 게 비침)
+    private readonly GlassCapture _statsCapture = new GlassCapture(4, 3); // 통계 창 유리용 화면 (업그레이드 창보다 더 흐림)
+    private RenderTexture _statsGlassTexture; // 지금 붙어 있는 화면 (해상도 바뀌면 새로 붙임)
+    private static readonly Color StatsGlassTint = new Color(1f, 0.93f, 0.82f, 1f); // 흐린 화면에 곱하는 색 (업그레이드 창의 어두운 파랑과 다르게 밝은 크림)
+    private static readonly Color StatsFrostColor = new Color(1f, 0.965f, 0.9f, 0.55f); // 위에 덮는 젖빛 막 (글자 잘 보이게)
     private readonly List<(Label value, System.Func<string> get)> _statRows = new List<(Label, System.Func<string>)>();
     private readonly List<(VisualElement row, System.Func<bool> visible)> _statGates = new List<(VisualElement, System.Func<bool>)>(); // 해금 전엔 숨길 통계 줄
     private VisualElement _settingsPanel;
@@ -462,6 +467,21 @@ public partial class SidePanelUI
     private void BuildStatsPanel(VisualElement root)
     {
         _statsPanel = CreatePopupFrame(CloseStatsPanel, out Label title);
+        _statsGlass = new VisualElement(); // 테두리 안쪽만 유리로
+        _statsGlass.pickingMode = PickingMode.Ignore;
+        _statsGlass.style.position = Position.Absolute;
+        _statsGlass.style.left = 6; // 테두리 한 도트 (창 도트 6px)
+        _statsGlass.style.right = 6;
+        _statsGlass.style.top = 12; // 테두리 + 위 밝은 줄
+        _statsGlass.style.bottom = 12; // 테두리 + 아래 어두운 줄
+        _statsGlass.style.unityBackgroundImageTintColor = StatsGlassTint;
+        var frost = new VisualElement(); // 젖빛 막
+        frost.pickingMode = PickingMode.Ignore;
+        frost.style.position = Position.Absolute;
+        frost.style.left = frost.style.right = frost.style.top = frost.style.bottom = 0;
+        frost.style.backgroundColor = StatsFrostColor;
+        _statsGlass.Add(frost);
+        _statsPanel.Insert(0, _statsGlass);
         Loc.Bind(title, "통계");
 
         var columns = StatPage();
@@ -797,8 +817,21 @@ public partial class SidePanelUI
         OnSelectorPanelToggled?.Invoke(true);
     }
 
+    // 통계 창이 열려 있는 동안 매 프레임 뒤의 게임 화면을 흐리게 다시 그림
+    void LateUpdate()
+    {
+        if (_statsGlass == null || _statsPanel.style.display != DisplayStyle.Flex) return;
+        RenderTexture texture = _statsCapture.Capture(); // 흐린 게임 화면
+        if (texture == null || texture == _statsGlassTexture) return;
+        _statsGlassTexture = texture;
+        _statsGlass.style.backgroundImage = Background.FromRenderTexture(texture);
+    }
+
     private void CloseStatsPanel()
     {
+        _statsCapture.Release(); // 닫혀 있는 동안은 화면을 안 그림
+        _statsGlassTexture = null;
+        if (_statsGlass != null) _statsGlass.style.backgroundImage = StyleKeyword.None;
         _statsPanel.style.display = DisplayStyle.None;
         RefreshButtonRowVisibility();
         UIPointerGuard.SetPopup("Stats", false); // 게임은 계속 돌고 월드 클릭만 막음
