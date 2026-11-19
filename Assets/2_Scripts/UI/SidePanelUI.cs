@@ -643,6 +643,7 @@ public partial class SidePanelUI : MonoBehaviour
         preview.style.height = previewSize;
 
         var card = CreateSideCard();
+        PixelStyle.Frame(card, PixelStyle.WeaponCard); // 무기 창은 살구색 카드
 
         var actionButton = new Button();
         actionButton.style.width = 400;
@@ -684,7 +685,7 @@ public partial class SidePanelUI : MonoBehaviour
             slot.style.height = 96;
             slot.style.marginLeft = 6;
             slot.style.marginRight = 6;
-            slot.style.backgroundColor = PixelStyle.Card.face.linear;
+            slot.style.backgroundColor = PixelStyle.WeaponCard.face.linear;
             slot.RegisterCallback<ClickEvent>(_ => { _weaponBrowse.index = index; redraw(); });
             slot.AddToClassList(DebrisPool.ClickSoundClass);
             slots.Add(slot);
@@ -756,7 +757,7 @@ public partial class SidePanelUI : MonoBehaviour
         {
             slots[i].sprite = weapons.GetWeaponAt(i).icon;
             slots[i].tintColor = weapons.IsUnlocked(i) ? Color.white : Color.black;
-            Color border = (i == weapons.EquippedIndex ? PixelStyle.Highlight : i == index ? PixelStyle.Text : PixelStyle.Card.outline).linear;
+            Color border = (i == weapons.EquippedIndex ? PixelStyle.Highlight : i == index ? PixelStyle.Text : PixelStyle.WeaponCard.outline).linear;
             SetFrame(slots[i], border, i == index || i == weapons.EquippedIndex ? 4 : 2, 0);
         }
     }
@@ -887,6 +888,7 @@ public partial class SidePanelUI : MonoBehaviour
     private void OpenPanel(VisualElement contentToShow)
     {
         _currentlyOpenContent = contentToShow;
+        PixelStyle.ScreenFrame(_panel, contentToShow == _weaponContent ? PixelStyle.WeaponWindow : PixelStyle.Window, 6f); // 무기 창만 살구색, 도감은 원래 색
         _weaponContent.style.display = contentToShow == _weaponContent ? DisplayStyle.Flex : DisplayStyle.None;
         bool dex = false; // 도감 탭 중 하나를 여는지
         foreach (var (button, content) in _dexTabs)

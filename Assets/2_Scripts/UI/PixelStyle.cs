@@ -40,6 +40,8 @@ public static class PixelStyle
 
     public static readonly Tone Window = new Tone(Hex("#FFF6E6"), Hex("#FFFDF7"), Hex("#EAD9BE"), Outline, Text);
     public static readonly Tone Card = new Tone(Hex("#FDEBD0"), Hex("#FFF6E6"), Hex("#E8CFA8"), Hex("#C9A67E"), Text);
+    public static readonly Tone WeaponWindow = new Tone(Hex("#FCEBE0"), Hex("#FEF7F3"), Hex("#E8D8CE"), Outline, Text); // 무기 창 바탕 (살구) - 도감과 같은 색 안 쓰게
+    public static readonly Tone WeaponCard = new Tone(Hex("#F5D2C0"), Hex("#FCEBE0"), Hex("#DFBFAF"), Hex("#B89E90"), Text); // 무기 창 능력치 카드·슬롯
     public static readonly Tone Ribbon = new Tone(Hex("#F2A7A0"), Hex("#F9D0CB"), Hex("#C9776F"), Outline, Hex("#5A2E2A"));
     public static readonly Tone Box = new Tone(Hex("#FFF6E6"), Hex("#FFFDF7"), Hex("#EAD9BE"), Outline, Text);
     public static readonly Tone GlassTrack = new Tone(Hex("#FFFFFF"), Hex("#E6F3FC"), Hex("#CBE3F6"), Hex("#6A98C2"), Text); // 볼륨 막대 뒤 흰 유리
