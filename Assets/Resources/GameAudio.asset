@@ -14,3 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameAudio
   bgm: {fileID: 8300000, guid: fc6c130c32deb0f498d878669801edba, type: 3}
   click: {fileID: 8300000, guid: a160c6c86008b52449b9fc341dbc2eef, type: 3}
+  sfxPreview: {fileID: 8300000, guid: 78e20e7ac5268bc4087fa1d50a0c74c9, type: 3}

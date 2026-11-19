@@ -160,7 +160,7 @@ public partial class SidePanelUI
 
         VisualElement sound = StatColumn(columns, "소리"); // 왼쪽 칸: 소리
         AddVolumeBar(sound, "전체 음량", () => GameSettings.MasterVolume, v => GameSettings.MasterVolume = v);
-        AddVolumeBar(sound, "효과음", () => SfxPlayer.Volume, v => SfxPlayer.Volume = v);
+        AddVolumeBar(sound, "효과음", () => SfxPlayer.Volume, v => { SfxPlayer.Volume = v; PlaySfxPreview(); });
         AddVolumeBar(sound, "배경음악", () => GameSettings.BgmVolume, v => GameSettings.BgmVolume = v);
 
         VisualElement game = StatColumn(columns, "게임"); // 가운데 칸: 게임
@@ -306,6 +306,14 @@ public partial class SidePanelUI
         SaveManager.Instance?.SaveNow(); // 나갈 때는 항상 자동 저장
         PlayerPrefs.Save();
         _confirmLeave?.Invoke();
+    }
+
+    private AudioSource _sfxPreviewSource; // 효과음 막대 미리듣기용 (처음 쓸 때 붙임)
+
+    private void PlaySfxPreview() // 효과음 막대를 움직일 때 바뀐 크기로 들려줌
+    {
+        if (_sfxPreviewSource == null) _sfxPreviewSource = gameObject.AddComponent<AudioSource>();
+        SfxPlayer.PlayPreview(_sfxPreviewSource, GameAudio.Instance != null ? GameAudio.Instance.sfxPreview : null);
     }
 
     private void AddVolumeBar(VisualElement column, string label, System.Func<float> get, System.Action<float> set)

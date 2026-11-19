@@ -117,6 +117,20 @@ public static class SfxPlayer
         }
     }
 
+    private const float PreviewInterval = 0.3f; // 초 - 효과음 막대를 끄는 동안 소리가 너무 촘촘하게 안 나게
+    private static float _lastPreviewTime = -1f; // 마지막 미리듣기 시각 (unscaled)
+
+    // 설정에서 효과음 크기를 바꿀 때 바뀐 크기로 한 번 들려줌 (창 열림 감쇠 없이 실제 게임 중 크기)
+    public static void PlayPreview(AudioSource source, AudioClip clip)
+    {
+        if (source == null || clip == null) return;
+        float now = Time.unscaledTime; // timeScale 0에서도 동작
+        if (now >= _lastPreviewTime && now - _lastPreviewTime < PreviewInterval) return; // 재시작하면 시각이 0부터라 작아질 수 있음
+        _lastPreviewTime = now;
+        source.pitch = 1f;
+        source.PlayOneShot(Trimmed(clip), BaseVolume * Volume);
+    }
+
     public static void Play(AudioSource source, AudioClip clip, bool priority = false, float pitch = 1f)
     {
         if (source == null || clip == null) return;

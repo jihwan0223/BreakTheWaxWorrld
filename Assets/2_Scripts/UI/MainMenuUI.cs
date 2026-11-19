@@ -623,7 +623,7 @@ public class MainMenuUI : MonoBehaviour
             AudioListener.volume = value;
             PlayerPrefs.SetFloat(MasterVolumeKey, value);
         });
-        AddVolumeCylinder(sound, "효과음", SfxPlayer.Volume, value => SfxPlayer.Volume = value);
+        AddVolumeCylinder(sound, "효과음", SfxPlayer.Volume, value => { SfxPlayer.Volume = value; PlaySfxPreview(); });
         AddVolumeCylinder(sound, "배경음악", GameSettings.BgmVolume, value => GameSettings.BgmVolume = value);
 
         var game = new VisualElement(); // 가운데 칸: 게임 (게임 안 설정과 같은 순서)
@@ -827,6 +827,12 @@ public class MainMenuUI : MonoBehaviour
         if (_clickSource == null) _clickSource = gameObject.AddComponent<AudioSource>();
         AudioClip clip = GameAudio.Instance != null ? GameAudio.Instance.click : null;
         SfxPlayer.Play(_clickSource, clip, priority: true);
+    }
+
+    private void PlaySfxPreview() // 효과음 막대를 움직일 때 바뀐 크기로 들려줌
+    {
+        if (_clickSource == null) _clickSource = gameObject.AddComponent<AudioSource>();
+        SfxPlayer.PlayPreview(_clickSource, GameAudio.Instance != null ? GameAudio.Instance.sfxPreview : null);
     }
 
     private System.Action WithClick(System.Action action) => () => { PlayClick(); action?.Invoke(); };

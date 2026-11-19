@@ -20,6 +20,7 @@ public class TutorialGuideUI : MonoBehaviour
         else if (version == 2) Step = step > StepUpgrade ? step + 1 : step; // 버전 2: 카메라 조작 단계가 끼어든 만큼 한 칸씩 뒤로
         else Step = step >= oldFinished ? Finished : 0;
         PendingReward = version == Version || version == 2 ? pendingReward : 0;
+        if (Step == StepCamera) UpgradeTreeUI.ResetCameraChecks(); // 전에 끌기/확대한 기록으로 불러오자마자 끝나지 않게
         _skipRewardsOnce = true;
     }
 
@@ -165,7 +166,6 @@ public class TutorialGuideUI : MonoBehaviour
     private Label _label; // 안내 글
     private Label _reward; // 보상 줄 ("+N조각")
     private VisualElement _strike; // 완료 줄 (안내 글 위를 가로지름)
-    private static bool _cameraChecksReset; // 카메라 퀘스트 확인을 이번 실행에서 초기화했음
     private bool _multiLine; // 완료한 퀘스트 글이 두 줄 이상 (취소선을 글자에 직접)
     private float _doneElapsed = -1f; // 완료 연출 진행 시간 (-1 = 연출 중 아님)
     private Texture2D _scrollTexture; // 두루마리 그림
@@ -378,7 +378,6 @@ public class TutorialGuideUI : MonoBehaviour
         if (_shownStep >= 0) _popElapsed = 0f; // 처음 뜰 때(불러오기 / 언어 바꿈)는 연출 없음
         _shownStep = Step;
         _icon.style.display = Step == StepFinal ? DisplayStyle.None : DisplayStyle.Flex; // 마지막 안내는 할 일이 아니라 아이콘 없음
-        if (Step == StepCamera && !_cameraChecksReset) { UpgradeTreeUI.ResetCameraChecks(); _cameraChecksReset = true; } // 퀘스트가 처음 뜰 때부터 셈
         _label.text = Step == StepUpgrade ? Loc.T(Texts[Step], NumberFormatUtil.Format(NextCost(UpgradeManager.FirstNodeId)))
             : Step == StepCamera ? CameraText() : Loc.T(Texts[Step]);
         long reward = Reward(Step); // 이 단계 보상
@@ -491,6 +490,7 @@ public class TutorialGuideUI : MonoBehaviour
         {
             PendingReward += Reward(Step); // 완료 연출 때 지급
             Step++;
+            if (Step == StepCamera) UpgradeTreeUI.ResetCameraChecks(); // 이 단계에 들어온 뒤 한 것만 셈 (플레이를 다시 켜도 static 기록이 남아 있어서)
         }
     }
 
