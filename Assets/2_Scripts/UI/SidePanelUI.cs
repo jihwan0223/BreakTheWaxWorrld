@@ -19,7 +19,6 @@ public partial class SidePanelUI : MonoBehaviour
     [Tooltip("도감 맵 탭 그림, 0 = 책상 위")] [SerializeField] private Sprite[] zoneImages;
 
     private VisualElement _panel;
-    private Label _panelTitle;
     private VisualElement _weaponContent;
     private VisualElement _objectContent;
     private BrowseState _weaponBrowse = new BrowseState();
@@ -166,7 +165,8 @@ public partial class SidePanelUI : MonoBehaviour
         // 투명 루트가 클릭을 먹지 않게 - 뒤쪽 업그레이드 트리 노드가 눌리도록
         root.pickingMode = PickingMode.Ignore;
 
-        _panel = CreatePopupFrame(ClosePanel, out _panelTitle);
+        _panel = CreatePopupFrame(ClosePanel, out Label panelTitle);
+        panelTitle.RemoveFromHierarchy(); // 무기·도감 창은 제목 리본 없음
 
         _weaponContent = BuildWeaponSection(out _refreshWeaponSelector);
         _panel.Add(_weaponContent);
@@ -213,9 +213,9 @@ public partial class SidePanelUI : MonoBehaviour
             else Debug.LogWarning("SidePanelUI: Upgrade Tree Panel이 인스펙터에 비어있어서 업그레이드 화면을 못 엶");
         });
 
-        var weaponButton = CreateButton("무기", PixelStyle.Pink, () => OpenPanel("무기", _weaponContent));
+        var weaponButton = CreateButton("무기", PixelStyle.Pink, () => OpenPanel(_weaponContent));
 
-        var objectButton = CreateButton("도감", PixelStyle.Sky, () => OpenPanel("도감", _lastDexContent ?? _objectContent));
+        var objectButton = CreateButton("도감", PixelStyle.Sky, () => OpenPanel(_lastDexContent ?? _objectContent));
 
         _statsButton = CreateButton("통계", PixelStyle.Butter, OpenStatsPanel);
         _statsButton.style.display = DisplayStyle.None;
@@ -884,9 +884,8 @@ public partial class SidePanelUI : MonoBehaviour
         onClick?.Invoke();
     }
 
-    private void OpenPanel(string title, VisualElement contentToShow)
+    private void OpenPanel(VisualElement contentToShow)
     {
-        _panelTitle.text = Loc.T(title);
         _currentlyOpenContent = contentToShow;
         _weaponContent.style.display = contentToShow == _weaponContent ? DisplayStyle.Flex : DisplayStyle.None;
         bool dex = false; // 도감 탭 중 하나를 여는지
@@ -959,7 +958,7 @@ public partial class SidePanelUI : MonoBehaviour
             ("맵", PixelStyle.Mint, _mapDexContent) })
         {
             content.style.top = 196; // 탭 줄 밑으로 내림
-            var tab = new Button(() => OpenPanel("도감", content));
+            var tab = new Button(() => OpenPanel(content));
             Loc.Bind(tab, label);
             tab.focusable = false;
             tab.style.width = 260;

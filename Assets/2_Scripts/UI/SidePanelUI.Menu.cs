@@ -482,7 +482,7 @@ public partial class SidePanelUI
         frost.style.backgroundColor = StatsFrostColor;
         _statsGlass.Add(frost);
         _statsPanel.Insert(0, _statsGlass);
-        Loc.Bind(title, "통계");
+        title.RemoveFromHierarchy(); // 통계 창은 제목 리본 없음
 
         var columns = StatPage();
         var left = StatColumn(columns, "기록");
