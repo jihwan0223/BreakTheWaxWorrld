@@ -47,6 +47,38 @@ public class SceneFader : MonoBehaviour
         fader.StartCoroutine(fader.Run(document, sceneName));
     }
 
+    // 게임 종료: 화면을 검게 덮은 뒤 끔 (꺼지는 동안 창이 정리되며 색이 깨져 보이는 걸 가림)
+    public static void FadeToQuit()
+    {
+        var go = new GameObject("QuitFader");
+        DontDestroyOnLoad(go);
+        var document = go.AddComponent<UIDocument>();
+        var settings = PixelStyle.NewPanelSettings();
+        settings.sortingOrder = 10000;
+        document.panelSettings = settings;
+        var fader = go.AddComponent<SceneFader>();
+        fader.StartCoroutine(fader.RunQuit(document));
+    }
+
+    private IEnumerator RunQuit(UIDocument document)
+    {
+        _cover = new VisualElement(); // 검은 덮개
+        _cover.style.position = Position.Absolute;
+        _cover.style.left = _cover.style.top = _cover.style.right = _cover.style.bottom = 0;
+        _cover.style.backgroundColor = Color.black;
+        _cover.style.opacity = 0f;
+        _cover.pickingMode = PickingMode.Position; // 꺼지는 동안 클릭 막음
+        document.rootVisualElement.Add(_cover);
+
+        yield return Fade(0f, 1f, FadeOutTime);
+        yield return null; // 다 검게 그려진 프레임을 보여 준 뒤 끔
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false; // 에디터에선 Application.Quit이 동작 안 함
+#else
+        Application.Quit();
+#endif
+    }
+
     private void Build(VisualElement root)
     {
         GameFonts.Apply(root);

@@ -154,6 +154,15 @@ public class MainMenuUI : MonoBehaviour
         PixelStyle.OutlinedText(title, PixelStyle.Ribbon.text, 0.3f);
         root.Add(title);
 
+        var version = new Label("v" + Application.version); // 오른쪽 아래 버전 표시 (Player Settings의 Version)
+        version.pickingMode = PickingMode.Ignore;
+        version.style.position = Position.Absolute;
+        version.style.right = 32;
+        version.style.bottom = 24;
+        version.style.fontSize = 28;
+        version.style.color = PixelStyle.Text.linear;
+        root.Add(version);
+
         var menuColumn = new VisualElement();
         menuColumn.style.position = Position.Absolute;
         menuColumn.style.left = 0;
@@ -456,14 +465,7 @@ public class MainMenuUI : MonoBehaviour
         SceneFader.FadeToScene(MainSceneName);
     }
 
-    private void QuitGame()
-    {
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false; // 에디터에선 Application.Quit이 동작 안 함
-#else
-        Application.Quit();
-#endif
-    }
+    private void QuitGame() => SceneFader.FadeToQuit();
 
     private VisualElement BuildConfirmDialog()
     {

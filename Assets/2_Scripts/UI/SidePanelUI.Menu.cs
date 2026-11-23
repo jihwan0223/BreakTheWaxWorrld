@@ -446,14 +446,7 @@ public partial class SidePanelUI
         SceneManager.LoadScene(MenuSceneName);
     }
 
-    private void QuitGame()
-    {
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#else
-        Application.Quit();
-#endif
-    }
+    private void QuitGame() => SceneFader.FadeToQuit();
 
     private Button CreateGearButton()
     {

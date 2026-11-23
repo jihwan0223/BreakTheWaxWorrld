@@ -34,7 +34,7 @@ public static class GameSettings
 
     public static float BgmVolume
     {
-        get => PlayerPrefs.GetFloat(BgmVolumeKey, 1f);
+        get => PlayerPrefs.GetFloat(BgmVolumeKey, 0.5f); // 처음 켜면 배경음악 50%
         set
         {
             PlayerPrefs.SetFloat(BgmVolumeKey, Mathf.Clamp01(value));
