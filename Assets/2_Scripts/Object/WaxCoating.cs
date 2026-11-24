@@ -194,7 +194,7 @@ public class WaxCoating : MonoBehaviour
         if (_objectCracks != null && _objectCracks.sprite != null) Destroy(_objectCracks.sprite);
     }
 
-    private void HandleDamaged(int current, int max)
+    private void HandleDamaged(long current, long max)
     {
         if (max <= 0) return;
         if (current >= max && _broken) Recoat();

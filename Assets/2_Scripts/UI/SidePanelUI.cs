@@ -722,7 +722,7 @@ public partial class SidePanelUI : MonoBehaviour
         preview.tintColor = unlocked ? Color.white : Color.black;
         nameLabel.text = hidden ? "???" : Loc.T(data.weaponName);
 
-        int bonus = UpgradeManager.Instance != null ? UpgradeManager.Instance.GetClickDamageBonus(index) : 0;
+        long bonus = UpgradeManager.Instance != null ? UpgradeManager.Instance.GetClickDamageBonus(index) : 0; // 강화 보너스
         long cost = buyable ? weapons.GetUnlockCost(index) : 0;
 
         card.Clear();
@@ -979,7 +979,7 @@ public partial class SidePanelUI : MonoBehaviour
         WeaponManager weapons = WeaponManager.Instance;
         if (weapons == null) return null;
         bool locked = !weapons.IsUnlocked(index); // 아직 안 산 무기
-        int bonus = UpgradeManager.Instance != null ? UpgradeManager.Instance.GetClickDamageBonus(index) : 0; // 강화 보너스
+        long bonus = UpgradeManager.Instance != null ? UpgradeManager.Instance.GetClickDamageBonus(index) : 0; // 강화 보너스
         return new[]
         {
             ("공격력", locked ? "???" : NumberFormatUtil.Format((long)weapons.GetWeaponAt(index).clickDamage + bonus), locked ? HiddenColor : Color.white),

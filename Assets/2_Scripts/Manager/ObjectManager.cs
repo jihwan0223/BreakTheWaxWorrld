@@ -197,7 +197,7 @@ public class ObjectManager : MonoBehaviour
 
     public static int FirstIndexOfTier(int tier) => objects.FindIndex(o => o.tier == tier);
 
-    public static int MaxHPOf(int index) =>
+    public static long MaxHPOf(int index) =>
         Health.ComputeMaxHP(objects[index].tier, objects[index].indexInTier, objects[index].hpMultiplier);
 
     public long ExpectedPieces(int index)

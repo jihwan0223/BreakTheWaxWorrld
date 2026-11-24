@@ -430,7 +430,7 @@ public class UpgradeManager : MonoBehaviour
         return false;
     }
 
-    public int GetClickDamageBonus(int equippedWeaponIndex)
+    public long GetClickDamageBonus(int equippedWeaponIndex)
     {
         float total = 0f;
         foreach (UpgradeNode node in _nodes)
@@ -444,7 +444,7 @@ public class UpgradeManager : MonoBehaviour
         }
         total += TutorialGuideUI.BonusDamage; // 튜토리얼 보상 (모든 무기)
         // 노드 값에 장착 무기 티어 배율을 곱함
-        return ClampToInt((double)total * ObjectHealthCalculator.ScaleOfTier(equippedWeaponIndex + 1));
+        return ClampToLong((double)total * ObjectHealthCalculator.ScaleOfTier(equippedWeaponIndex + 1));
     }
 
     public float CritChanceValue
@@ -574,10 +574,10 @@ public class UpgradeManager : MonoBehaviour
     public float AutoClickDamageMultiplier =>
         (1f + SumEffect(UpgradeEffect.RebirthAutoClickDamagePercent) / 100f) * (AnyUnlocked(UpgradeEffect.RebirthAutoClickDamageDouble) ? 2f : 1f);
     // 자동클릭 데미지 +n (클릭 데미지처럼 장착 무기 티어 배율을 곱함)
-    public int GetAutoClickDamageBonus(int equippedWeaponIndex) =>
-        ClampToInt((double)SumEffect(UpgradeEffect.AutoClickDamageFlat) * ObjectHealthCalculator.ScaleOfTier(equippedWeaponIndex + 1));
-    // 데미지 계산용: int를 넘으면 음수로 뒤집히지 않고 int 최대값에서 멈춤
-    public static int ClampToInt(double value) => value >= int.MaxValue ? int.MaxValue : value <= 0 ? 0 : (int)System.Math.Round(value);
+    public long GetAutoClickDamageBonus(int equippedWeaponIndex) =>
+        ClampToLong((double)SumEffect(UpgradeEffect.AutoClickDamageFlat) * ObjectHealthCalculator.ScaleOfTier(equippedWeaponIndex + 1));
+    // 데미지 계산용: long 끝(약 922경)을 넘으면 음수로 뒤집히지 않고 거기서 멈춤 - 사실상 제한 없음
+    public static long ClampToLong(double value) => value >= long.MaxValue ? long.MaxValue : value <= 0 ? 0 : (long)System.Math.Round(value);
     public float BossTimeBonus => SumEffect(UpgradeEffect.RebirthBossTime); // 초
     public long StarShardBonus => Mathf.RoundToInt(SumEffect(UpgradeEffect.StarShardGain)); // 환생할 때 별조각 +n
     public long PickupBonusPieces => Mathf.RoundToInt(SumEffect(UpgradeEffect.PickupBonusPieces)); // 바닥 조각 1개 주울 때 +n

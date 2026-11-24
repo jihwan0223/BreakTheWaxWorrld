@@ -34,7 +34,7 @@ public class HealthSpriteSwitcher : MonoBehaviour
     }
 
     // 크기는 이미지의 Pixels Per Unit으로 맞춤
-    private void UpdateSprite(int current, int max)
+    private void UpdateSprite(long current, long max)
     {
         Sprite[] healthStages = GetHealthStages();
 

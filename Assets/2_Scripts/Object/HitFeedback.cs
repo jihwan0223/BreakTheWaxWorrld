@@ -33,7 +33,7 @@ public class HitFeedback : MonoBehaviour
             _health.OnDamaged -= HandleDamaged;
     }
 
-    private void HandleDamaged(int current, int max)
+    private void HandleDamaged(long current, long max)
     {
         if (_feedbackRoutine != null)
             StopCoroutine(_feedbackRoutine);

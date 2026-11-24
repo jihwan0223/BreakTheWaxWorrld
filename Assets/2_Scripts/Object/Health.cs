@@ -14,19 +14,19 @@ public class Health : MonoBehaviour
     [SerializeField] private float respawnFadeDuration = 0.25f; // 초
     [SerializeField] private bool stayVisibleWhenDead; // 죽어도 사라지지 않음 (배경 오브젝트용)
 
-    private int maxHP;
+    private long maxHP; // 최대 체력 (int 21억을 넘을 수 있어 long)
 
     private const float GlobalHpScale = 3f;
 
     private static readonly float[] MapHpScale = { 1f, 2f, 4f, 8f, 16f }; // 맵1~5 체력 배율
 
-    public static int ComputeMaxHP(int tier, int indexInTier, float multiplier) =>
-        Mathf.Max(1, Mathf.RoundToInt(ObjectHealthCalculator.Calculate(tier, indexInTier) * multiplier
+    public static long ComputeMaxHP(int tier, int indexInTier, float multiplier) =>
+        System.Math.Max(1L, (long)System.Math.Round((double)(ObjectHealthCalculator.Calculate(tier, indexInTier) * multiplier
             * MapHpScale[Mathf.Clamp((tier - 1) / 2, 0, MapHpScale.Length - 1)] * GlobalHpScale
-            * (GameSettings.IsDemo ? GameSettings.DemoHpMultiplier : 1f))); // 데모는 체력 배수
+            * (GameSettings.IsDemo ? GameSettings.DemoHpMultiplier : 1f)))); // 데모는 체력 배수
 
-    public int MaxHP => maxHP;
-    public int CurrentHP { get; private set; }
+    public long MaxHP => maxHP;
+    public long CurrentHP { get; private set; }
     public bool IsDead { get; private set; }
 
     public bool HasRespawnDelay => respawnDelay > 0f;
@@ -35,7 +35,7 @@ public class Health : MonoBehaviour
 
     public bool AutoRespawn { get; set; } = true; // false면 죽은 채로 있다가 ResetToFull로만 부활 (컨베이어 위 오브젝트)
 
-    public event Action<int, int> OnDamaged;
+    public event Action<long, long> OnDamaged;
 
     public event Action OnDied;
 
@@ -102,12 +102,12 @@ public class Health : MonoBehaviour
         OnDamaged?.Invoke(CurrentHP, maxHP);
     }
 
-    public void TakeDamage(int amount)
+    public void TakeDamage(long amount)
     {
         if (IsDead)
             return;
 
-        CurrentHP = Mathf.Max(0, CurrentHP - amount);
+        CurrentHP = System.Math.Max(0L, CurrentHP - amount);
         OnDamaged?.Invoke(CurrentHP, maxHP);
 
         if (CurrentHP <= 0)

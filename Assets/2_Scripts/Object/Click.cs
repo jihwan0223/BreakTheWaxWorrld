@@ -214,7 +214,7 @@ public class Click : MonoBehaviour
         int baseDamage = WeaponManager.Instance != null ? WeaponManager.Instance.CurrentClickDamage : 1;
 
         int equippedWeaponIndex = WeaponManager.Instance != null ? WeaponManager.Instance.EquippedIndex : -1;
-        int clickDamageBonus = UpgradeManager.Instance != null ? UpgradeManager.Instance.GetClickDamageBonus(equippedWeaponIndex) : 0;
+        long clickDamageBonus = UpgradeManager.Instance != null ? UpgradeManager.Instance.GetClickDamageBonus(equippedWeaponIndex) : 0;
         float damageMultiplier = UpgradeManager.Instance != null ? UpgradeManager.Instance.ClickDamageMultiplier : 1f; // 환생 클릭 데미지 %
         double rawDamage = ((double)baseDamage + clickDamageBonus) * damageMultiplier; // int 넘침 막으려고 double로 계산
         if (autoClick && UpgradeManager.Instance != null) // 자동클릭 전용: +n 후 % / 2배
@@ -226,15 +226,15 @@ public class Click : MonoBehaviour
             rawDamage = System.Math.Round(rawDamage) * UpgradeManager.Instance.CritMultiplierValue * SuperCritMultiplier;
         else if (isCrit)
             rawDamage = System.Math.Round(rawDamage) * UpgradeManager.Instance.CritMultiplierValue;
-        int damage = UpgradeManager.ClampToInt(rawDamage); // 실제 데미지 (int 최대값에서 멈춤)
+        long damage = UpgradeManager.ClampToLong(rawDamage); // 실제 데미지 (long이라 21억 제한 없음)
         if (isSuper) GameStats.SuperCrits++;
         else if (isCrit) GameStats.Crits++;
         if (autoClick)
-            damage = Mathf.Max(1, UpgradeManager.ClampToInt((double)damage * AutoClickDamageRatio));
+            damage = System.Math.Max(1L, UpgradeManager.ClampToLong((double)damage * AutoClickDamageRatio));
 
         bool bossFight = _boss != null && _boss.BossActive;
         bool shielded = bossFight && _boss.ShieldRatio > 0f;
-        if (shielded) damage = Mathf.Max(1, (int)System.Math.Min(int.MaxValue, System.Math.Floor((double)damage * _boss.BossDamageMultiplier))); // 내림이라 작은 데미지도 줄어든 게 보임
+        if (shielded) damage = System.Math.Max(1L, UpgradeManager.ClampToLong(System.Math.Floor((double)damage * _boss.BossDamageMultiplier))); // 내림이라 작은 데미지도 줄어든 게 보임
         GameStats.TotalDamage += damage;
         if (damage > GameStats.BestHit) GameStats.BestHit = damage;
 
@@ -257,7 +257,7 @@ public class Click : MonoBehaviour
                 ? ObjectManager.Instance.GetObjectAt(objectIndex).pileColor : Color.white;
             if (_wax != null && _wax.TryGetChipColor(out Color waxColor)) chipColor = waxColor;
             HitEffects.Play(hitPoint, damage, isCrit || isSuper, chipColor, shielded, isSuper);
-            if (_wax != null) _wax.Hit(hitPoint, (float)damage / Mathf.Max(1, _health.MaxHP));
+            if (_wax != null) _wax.Hit(hitPoint, (float)((double)damage / System.Math.Max(1L, _health.MaxHP)));
         }
 
         if (playWeaponSwing && !IsZoneHidden && WeaponManager.Instance != null && _collider != null)
